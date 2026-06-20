@@ -89,6 +89,12 @@ jobs:
             artifacts/*.snupkg
           if-no-files-found: error
 
+      - name: NuGet login
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ vars.NUGET_USER }}
+
       - name: Publish package
         shell: bash
         run: |
@@ -105,12 +111,14 @@ jobs:
 
           for package in "${packages[@]}"; do
             dotnet nuget push "$package" \
+              --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" \
               --source https://api.nuget.org/v3/index.json \
               --skip-duplicate
           done
 
           for symbol_package in "${symbols[@]}"; do
             dotnet nuget push "$symbol_package" \
+              --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" \
               --source https://api.nuget.org/v3/index.json \
               --skip-duplicate
           done
