@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - release-*
+  pull_request:
+
+jobs:
+  test-pack-smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore PdfiumRaster.slnx
+
+      - name: Test
+        run: dotnet test PdfiumRaster.slnx --configuration Release --no-restore
+
+      - name: Pack
+        run: dotnet pack src/PdfiumRaster/PdfiumRaster.csproj --configuration Release --no-restore --output artifacts
+
+      - name: Smoke test package install
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tmpdir="$(mktemp -d)"
+          dotnet new console -n PdfiumRasterSmoke -o "$tmpdir/PdfiumRasterSmoke" --framework net10.0
+          cd "$tmpdir/PdfiumRasterSmoke"
+          cat > NuGet.config <<XML
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="local" value="$GITHUB_WORKSPACE/artifacts" />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+            </packageSources>
+          </configuration>
+          XML
+          dotnet add package PdfiumRaster
+          cp "$GITHUB_WORKSPACE/tests/PdfiumRaster.Tests/TestAssets/annotations.pdf" ./annotations.pdf
+          cat > Program.cs <<'CS'
+          using PdfiumRaster;
+
+          PdfImageConverter.SavePng("annotations.pdf", pageNumber: 1, "page.png");
+
+          if (!File.Exists("page.png") || new FileInfo("page.png").Length == 0)
+          {
+              throw new InvalidOperationException("Smoke test did not generate page.png.");
+          }
+          CS
+          dotnet run --configuration Release

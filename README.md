@@ -212,6 +212,7 @@ See [samples/README.md](samples/README.md) for additional sample scenarios and e
 
 - [API reference](docs/API.md)
 - [Sample descriptions](samples/README.md)
+- [Release checklist](docs/RELEASING.md)
 
 ## License
 
