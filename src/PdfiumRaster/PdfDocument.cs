@@ -2,6 +2,9 @@ using System.Runtime.InteropServices;
 
 namespace PdfiumRaster;
 
+/// <summary>
+/// Represents an open PDF document.
+/// </summary>
 public sealed class PdfDocument : IDisposable
 {
     private IntPtr _handle;
@@ -13,6 +16,9 @@ public sealed class PdfDocument : IDisposable
         _pinnedBytes = pinnedBytes;
     }
 
+    /// <summary>
+    /// Gets the number of pages in the document.
+    /// </summary>
     public int PageCount
     {
         get
@@ -22,6 +28,12 @@ public sealed class PdfDocument : IDisposable
         }
     }
 
+    /// <summary>
+    /// Opens a PDF document from a file path.
+    /// </summary>
+    /// <param name="path">Path to the PDF file.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>An open PDF document.</returns>
     public static PdfDocument Load(string path, string? password = null)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -38,6 +50,12 @@ public sealed class PdfDocument : IDisposable
         return new PdfDocument(handle);
     }
 
+    /// <summary>
+    /// Opens a PDF document from a byte array.
+    /// </summary>
+    /// <param name="bytes">PDF file bytes.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>An open PDF document.</returns>
     public static PdfDocument Load(byte[] bytes, string? password = null)
     {
         if (bytes is null)
@@ -62,6 +80,13 @@ public sealed class PdfDocument : IDisposable
         return new PdfDocument(handle, pinnedBytes);
     }
 
+    /// <summary>
+    /// Opens a PDF document from a stream.
+    /// </summary>
+    /// <param name="stream">Stream containing PDF file data.</param>
+    /// <param name="leaveOpen">Whether to leave <paramref name="stream"/> open after loading.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>An open PDF document.</returns>
     public static PdfDocument Load(Stream stream, bool leaveOpen = false, string? password = null)
     {
         if (stream is null)
@@ -84,6 +109,11 @@ public sealed class PdfDocument : IDisposable
         }
     }
 
+    /// <summary>
+    /// Loads a single page by zero-based page index.
+    /// </summary>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <returns>An open PDF page.</returns>
     public PdfPage LoadPage(int pageIndex)
     {
         ThrowIfDisposed();
@@ -103,6 +133,9 @@ public sealed class PdfDocument : IDisposable
         return new PdfPage(pageHandle);
     }
 
+    /// <summary>
+    /// Closes the document and releases associated native resources.
+    /// </summary>
     public void Dispose()
     {
         var handle = Interlocked.Exchange(ref _handle, IntPtr.Zero);

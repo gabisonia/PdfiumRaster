@@ -1,7 +1,17 @@
 namespace PdfiumRaster;
 
+/// <summary>
+/// Represents a rendered PDF page bitmap in BGRA byte order.
+/// </summary>
 public sealed class PdfBitmap
 {
+    /// <summary>
+    /// Initializes a bitmap from an existing BGRA pixel buffer.
+    /// </summary>
+    /// <param name="width">Bitmap width in pixels.</param>
+    /// <param name="height">Bitmap height in pixels.</param>
+    /// <param name="stride">Number of bytes per bitmap row.</param>
+    /// <param name="pixels">BGRA pixel buffer.</param>
     public PdfBitmap(int width, int height, int stride, byte[] pixels)
     {
         if (width <= 0)
@@ -35,6 +45,12 @@ public sealed class PdfBitmap
         Pixels = pixels;
     }
 
+    /// <summary>
+    /// Creates an empty BGRA bitmap with a tightly packed stride.
+    /// </summary>
+    /// <param name="width">Bitmap width in pixels.</param>
+    /// <param name="height">Bitmap height in pixels.</param>
+    /// <returns>A new bitmap whose pixel buffer is initialized to zero.</returns>
     public static PdfBitmap Create(int width, int height)
     {
         if (width <= 0)
@@ -51,10 +67,19 @@ public sealed class PdfBitmap
         return new PdfBitmap(width, height, stride, new byte[checked(stride * height)]);
     }
 
+    /// <summary>
+    /// Gets the bitmap width in pixels.
+    /// </summary>
     public int Width { get; }
 
+    /// <summary>
+    /// Gets the bitmap height in pixels.
+    /// </summary>
     public int Height { get; }
 
+    /// <summary>
+    /// Gets the number of bytes per bitmap row.
+    /// </summary>
     public int Stride { get; }
 
     /// <summary>

@@ -1,7 +1,16 @@
 namespace PdfiumRaster;
 
+/// <summary>
+/// Provides convenience methods for rendering PDF pages to image bitmaps and files.
+/// </summary>
 public static class PdfImageConverter
 {
+    /// <summary>
+    /// Gets the page count for a PDF file.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>The number of pages in the document.</returns>
     public static int GetPageCount(string pdfPath, string? password = null)
     {
         using var library = PdfiumLibrary.Initialize();
@@ -10,6 +19,12 @@ public static class PdfImageConverter
         return document.PageCount;
     }
 
+    /// <summary>
+    /// Gets the page count for PDF bytes.
+    /// </summary>
+    /// <param name="pdfBytes">PDF file bytes.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>The number of pages in the document.</returns>
     public static int GetPageCount(byte[] pdfBytes, string? password = null)
     {
         using var library = PdfiumLibrary.Initialize();
@@ -18,6 +33,13 @@ public static class PdfImageConverter
         return document.PageCount;
     }
 
+    /// <summary>
+    /// Gets the page count for a PDF stream.
+    /// </summary>
+    /// <param name="pdfStream">Stream containing PDF file data.</param>
+    /// <param name="leaveOpen">Whether to leave <paramref name="pdfStream"/> open after loading.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>The number of pages in the document.</returns>
     public static int GetPageCount(Stream pdfStream, bool leaveOpen = false, string? password = null)
     {
         using var library = PdfiumLibrary.Initialize();
@@ -26,6 +48,12 @@ public static class PdfImageConverter
         return document.PageCount;
     }
 
+    /// <summary>
+    /// Gets the page count for a Base64-encoded PDF.
+    /// </summary>
+    /// <param name="pdfBase64">Base64-encoded PDF file data.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>The number of pages in the document.</returns>
     public static int GetPageCountFromBase64(string pdfBase64, string? password = null)
     {
         if (pdfBase64 is null)
@@ -36,6 +64,12 @@ public static class PdfImageConverter
         return GetPageCount(Convert.FromBase64String(pdfBase64), password);
     }
 
+    /// <summary>
+    /// Gets all page sizes from a PDF file.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>Page sizes in PDF points.</returns>
     public static IReadOnlyList<PdfPageSize> GetPageSizes(string pdfPath, string? password = null)
     {
         using var library = PdfiumLibrary.Initialize();
@@ -44,6 +78,12 @@ public static class PdfImageConverter
         return GetPageSizes(document);
     }
 
+    /// <summary>
+    /// Gets all page sizes from PDF bytes.
+    /// </summary>
+    /// <param name="pdfBytes">PDF file bytes.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>Page sizes in PDF points.</returns>
     public static IReadOnlyList<PdfPageSize> GetPageSizes(byte[] pdfBytes, string? password = null)
     {
         using var library = PdfiumLibrary.Initialize();
@@ -52,6 +92,13 @@ public static class PdfImageConverter
         return GetPageSizes(document);
     }
 
+    /// <summary>
+    /// Gets all page sizes from a PDF stream.
+    /// </summary>
+    /// <param name="pdfStream">Stream containing PDF file data.</param>
+    /// <param name="leaveOpen">Whether to leave <paramref name="pdfStream"/> open after loading.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>Page sizes in PDF points.</returns>
     public static IReadOnlyList<PdfPageSize> GetPageSizes(Stream pdfStream, bool leaveOpen = false, string? password = null)
     {
         using var library = PdfiumLibrary.Initialize();
@@ -60,6 +107,12 @@ public static class PdfImageConverter
         return GetPageSizes(document);
     }
 
+    /// <summary>
+    /// Gets all page sizes from a Base64-encoded PDF.
+    /// </summary>
+    /// <param name="pdfBase64">Base64-encoded PDF file data.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>Page sizes in PDF points.</returns>
     public static IReadOnlyList<PdfPageSize> GetPageSizesFromBase64(string pdfBase64, string? password = null)
     {
         if (pdfBase64 is null)
@@ -70,6 +123,14 @@ public static class PdfImageConverter
         return GetPageSizes(Convert.FromBase64String(pdfBase64), password);
     }
 
+    /// <summary>
+    /// Renders a zero-based page from a PDF file using page render options.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <param name="options">Optional page render options.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>The rendered page bitmap.</returns>
     public static PdfBitmap RenderPage(
         string pdfPath,
         int pageIndex,
@@ -82,6 +143,14 @@ public static class PdfImageConverter
         }, password);
     }
 
+    /// <summary>
+    /// Renders a zero-based page from a PDF file using conversion options.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>The rendered page bitmap.</returns>
     public static PdfBitmap RenderPage(
         string pdfPath,
         int pageIndex,
@@ -100,6 +169,14 @@ public static class PdfImageConverter
         return bitmap;
     }
 
+    /// <summary>
+    /// Renders a zero-based page from PDF bytes.
+    /// </summary>
+    /// <param name="pdfBytes">PDF file bytes.</param>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>The rendered page bitmap.</returns>
     public static PdfBitmap RenderPage(
         byte[] pdfBytes,
         int pageIndex,
@@ -118,6 +195,15 @@ public static class PdfImageConverter
         return bitmap;
     }
 
+    /// <summary>
+    /// Renders a zero-based page from a PDF stream.
+    /// </summary>
+    /// <param name="pdfStream">Stream containing PDF file data.</param>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="leaveOpen">Whether to leave <paramref name="pdfStream"/> open after loading.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>The rendered page bitmap.</returns>
     public static PdfBitmap RenderPage(
         Stream pdfStream,
         int pageIndex,
@@ -137,6 +223,14 @@ public static class PdfImageConverter
         return bitmap;
     }
 
+    /// <summary>
+    /// Renders a zero-based page from a Base64-encoded PDF.
+    /// </summary>
+    /// <param name="pdfBase64">Base64-encoded PDF file data.</param>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>The rendered page bitmap.</returns>
     public static PdfBitmap RenderPageFromBase64(
         string pdfBase64,
         int pageIndex,
@@ -151,6 +245,14 @@ public static class PdfImageConverter
         return RenderPage(Convert.FromBase64String(pdfBase64), pageIndex, options, password);
     }
 
+    /// <summary>
+    /// Renders a one-based page number from a PDF file.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageNumber">One-based page number.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>The rendered page bitmap.</returns>
     public static PdfBitmap RenderPageNumber(
         string pdfPath,
         int pageNumber,
@@ -160,6 +262,14 @@ public static class PdfImageConverter
         return RenderPage(pdfPath, ToPageIndex(pageNumber), options, password);
     }
 
+    /// <summary>
+    /// Renders a one-based page number from PDF bytes.
+    /// </summary>
+    /// <param name="pdfBytes">PDF file bytes.</param>
+    /// <param name="pageNumber">One-based page number.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>The rendered page bitmap.</returns>
     public static PdfBitmap RenderPageNumber(
         byte[] pdfBytes,
         int pageNumber,
@@ -169,6 +279,14 @@ public static class PdfImageConverter
         return RenderPage(pdfBytes, ToPageIndex(pageNumber), options, password);
     }
 
+    /// <summary>
+    /// Renders and saves a zero-based page from a PDF file.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <param name="imagePath">Destination image path.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
     public static void SavePage(
         string pdfPath,
         int pageIndex,
@@ -187,6 +305,14 @@ public static class PdfImageConverter
         SaveBitmap(bitmap, imagePath, options.Format);
     }
 
+    /// <summary>
+    /// Renders and saves a one-based page number from a PDF file.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageNumber">One-based page number.</param>
+    /// <param name="imagePath">Destination image path.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
     public static void SavePageNumber(
         string pdfPath,
         int pageNumber,
@@ -197,21 +323,52 @@ public static class PdfImageConverter
         SavePage(pdfPath, ToPageIndex(pageNumber), imagePath, options, password);
     }
 
+    /// <summary>
+    /// Renders and saves a one-based page number as PNG.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageNumber">One-based page number.</param>
+    /// <param name="imagePath">Destination image path.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
     public static void SavePng(string pdfPath, int pageNumber, string imagePath, PdfImageConversionOptions? options = null, string? password = null)
     {
         SavePageNumber(pdfPath, pageNumber, imagePath, WithFormat(options, PdfImageOutputFormat.Png), password);
     }
 
+    /// <summary>
+    /// Renders and saves a one-based page number as JPEG.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageNumber">One-based page number.</param>
+    /// <param name="imagePath">Destination image path.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
     public static void SaveJpeg(string pdfPath, int pageNumber, string imagePath, PdfImageConversionOptions? options = null, string? password = null)
     {
         SavePageNumber(pdfPath, pageNumber, imagePath, WithFormat(options, PdfImageOutputFormat.Jpeg), password);
     }
 
+    /// <summary>
+    /// Renders and saves a one-based page number as WebP.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageNumber">One-based page number.</param>
+    /// <param name="imagePath">Destination image path.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
     public static void SaveWebp(string pdfPath, int pageNumber, string imagePath, PdfImageConversionOptions? options = null, string? password = null)
     {
         SavePageNumber(pdfPath, pageNumber, imagePath, WithFormat(options, PdfImageOutputFormat.Webp), password);
     }
 
+    /// <summary>
+    /// Lazily renders every page in a PDF file.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>A sequence of rendered page bitmaps.</returns>
     public static IEnumerable<PdfBitmap> RenderDocument(
         string pdfPath,
         PdfImageConversionOptions? options = null,
@@ -226,6 +383,14 @@ public static class PdfImageConverter
         }
     }
 
+    /// <summary>
+    /// Lazily renders selected zero-based page indexes from a PDF file.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageIndexes">Zero-based page indexes to render.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>A sequence of rendered page bitmaps ordered by page index.</returns>
     public static IEnumerable<PdfBitmap> RenderPages(
         string pdfPath,
         IEnumerable<int> pageIndexes,
@@ -246,6 +411,15 @@ public static class PdfImageConverter
         }
     }
 
+    /// <summary>
+    /// Renders every page in a PDF file and saves each page to an image file.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="outputDirectory">Directory where rendered images are written.</param>
+    /// <param name="fileNamePrefix">Prefix used for generated image file names.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>The number of pages saved.</returns>
     public static int SaveDocument(
         string pdfPath,
         string outputDirectory,
@@ -284,6 +458,12 @@ public static class PdfImageConverter
         return document.PageCount;
     }
 
+    /// <summary>
+    /// Saves a rendered bitmap to a file in the requested image format.
+    /// </summary>
+    /// <param name="bitmap">Rendered bitmap to save.</param>
+    /// <param name="path">Destination image path.</param>
+    /// <param name="format">Image output format.</param>
     public static void SaveBitmap(PdfBitmap bitmap, string path, PdfImageOutputFormat format)
     {
         if (bitmap is null)
@@ -315,6 +495,12 @@ public static class PdfImageConverter
         }
     }
 
+    /// <summary>
+    /// Applies color post-processing to a rendered bitmap in place.
+    /// </summary>
+    /// <param name="bitmap">Bitmap to modify.</param>
+    /// <param name="colorMode">Color conversion to apply.</param>
+    /// <param name="blackAndWhiteThreshold">Luminance threshold used when <paramref name="colorMode"/> is black and white.</param>
     public static void ApplyColorMode(
         PdfBitmap bitmap,
         PdfImageColorMode colorMode,

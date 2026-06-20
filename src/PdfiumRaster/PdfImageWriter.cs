@@ -3,12 +3,20 @@ using SkiaSharp;
 
 namespace PdfiumRaster;
 
+/// <summary>
+/// Writes rendered PDF bitmaps to image files or streams.
+/// </summary>
 public static class PdfImageWriter
 {
     private const int BitmapFileHeaderSize = 14;
     private const int BitmapInfoHeaderSize = 40;
     private const int BitsPerPixel = 32;
 
+    /// <summary>
+    /// Saves a bitmap as a BMP file.
+    /// </summary>
+    /// <param name="bitmap">Bitmap to save.</param>
+    /// <param name="path">Destination file path.</param>
     public static void SaveBmp(PdfBitmap bitmap, string path)
     {
         if (bitmap is null)
@@ -25,36 +33,75 @@ public static class PdfImageWriter
         WriteBmp(bitmap, stream);
     }
 
+    /// <summary>
+    /// Saves a bitmap as a PNG file.
+    /// </summary>
+    /// <param name="bitmap">Bitmap to save.</param>
+    /// <param name="path">Destination file path.</param>
     public static void SavePng(PdfBitmap bitmap, string path)
     {
         SaveEncoded(bitmap, path, SKEncodedImageFormat.Png);
     }
 
+    /// <summary>
+    /// Saves a bitmap as a JPEG file.
+    /// </summary>
+    /// <param name="bitmap">Bitmap to save.</param>
+    /// <param name="path">Destination file path.</param>
+    /// <param name="quality">Encoder quality from 0 to 100.</param>
     public static void SaveJpeg(PdfBitmap bitmap, string path, int quality = 100)
     {
         SaveEncoded(bitmap, path, SKEncodedImageFormat.Jpeg, quality);
     }
 
+    /// <summary>
+    /// Saves a bitmap as a WebP file.
+    /// </summary>
+    /// <param name="bitmap">Bitmap to save.</param>
+    /// <param name="path">Destination file path.</param>
+    /// <param name="quality">Encoder quality from 0 to 100.</param>
     public static void SaveWebp(PdfBitmap bitmap, string path, int quality = 100)
     {
         SaveEncoded(bitmap, path, SKEncodedImageFormat.Webp, quality);
     }
 
+    /// <summary>
+    /// Writes a bitmap as PNG to a stream.
+    /// </summary>
+    /// <param name="bitmap">Bitmap to write.</param>
+    /// <param name="stream">Destination stream.</param>
     public static void WritePng(PdfBitmap bitmap, Stream stream)
     {
         WriteEncoded(bitmap, stream, SKEncodedImageFormat.Png);
     }
 
+    /// <summary>
+    /// Writes a bitmap as JPEG to a stream.
+    /// </summary>
+    /// <param name="bitmap">Bitmap to write.</param>
+    /// <param name="stream">Destination stream.</param>
+    /// <param name="quality">Encoder quality from 0 to 100.</param>
     public static void WriteJpeg(PdfBitmap bitmap, Stream stream, int quality = 100)
     {
         WriteEncoded(bitmap, stream, SKEncodedImageFormat.Jpeg, quality);
     }
 
+    /// <summary>
+    /// Writes a bitmap as WebP to a stream.
+    /// </summary>
+    /// <param name="bitmap">Bitmap to write.</param>
+    /// <param name="stream">Destination stream.</param>
+    /// <param name="quality">Encoder quality from 0 to 100.</param>
     public static void WriteWebp(PdfBitmap bitmap, Stream stream, int quality = 100)
     {
         WriteEncoded(bitmap, stream, SKEncodedImageFormat.Webp, quality);
     }
 
+    /// <summary>
+    /// Writes a bitmap as BMP to a stream.
+    /// </summary>
+    /// <param name="bitmap">Bitmap to write.</param>
+    /// <param name="stream">Destination stream.</param>
     public static void WriteBmp(PdfBitmap bitmap, Stream stream)
     {
         if (bitmap is null)
