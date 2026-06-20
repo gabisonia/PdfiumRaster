@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/PdfiumRaster/PdfiumRaster.csproj" />
+  <Project Path="tests/PdfiumRaster.Tests/PdfiumRaster.Tests.csproj" />
+</Solution>

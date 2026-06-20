@@ -1,0 +1,10 @@
+bin/
+obj/
+TestOutput/
+
+.DS_Store
+*.user
+
+.idea/
+.vs/
+.vscode/
