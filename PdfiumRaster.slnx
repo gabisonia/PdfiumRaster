@@ -1,4 +1,5 @@
 <Solution>
+  <File Path="AGENTS.md" />
   <File Path="Makefile" />
   <Project Path="src/PdfiumRaster/PdfiumRaster.csproj" />
   <Project Path="tests/PdfiumRaster.Tests/PdfiumRaster.Tests.csproj" />

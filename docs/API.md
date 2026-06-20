@@ -29,6 +29,17 @@ PdfImageConverter.GetPageSizesFromBase64(string pdfBase64);
 
 `PdfPageSize.Width` and `PdfPageSize.Height` are in PDF points.
 
+### Large PDF Inputs
+
+For large documents, prefer path-based APIs or seekable streams:
+
+```csharp
+using var stream = File.OpenRead("large.pdf");
+int pageCount = PdfImageConverter.GetPageCount(stream, leaveOpen: true);
+```
+
+Seekable streams are loaded through PDFium custom file access, so the full PDF is not copied into a managed byte array. Byte array and Base64 APIs keep the full PDF in memory. Non-seekable streams are buffered into memory before loading because PDFium requires random access.
+
 ## Rendering
 
 Zero-based page indexes:

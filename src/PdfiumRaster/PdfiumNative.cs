@@ -6,6 +6,30 @@ internal static partial class PdfiumNative
 {
     private static readonly string SyncRoot = string.Intern("PdfiumRaster.PdfiumNative.SyncRoot");
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    internal delegate int GetBlock32Callback(IntPtr param, uint position, IntPtr buffer, uint size);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    internal delegate int GetBlock64Callback(IntPtr param, ulong position, IntPtr buffer, ulong size);
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct FileAccess32
+    {
+        internal uint FileLength;
+        [MarshalAs(UnmanagedType.FunctionPtr)]
+        internal GetBlock32Callback GetBlock;
+        internal IntPtr Param;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct FileAccess64
+    {
+        internal ulong FileLength;
+        [MarshalAs(UnmanagedType.FunctionPtr)]
+        internal GetBlock64Callback GetBlock;
+        internal IntPtr Param;
+    }
+
     internal static void FPDF_InitLibrary()
     {
         lock (SyncRoot)
@@ -35,6 +59,14 @@ internal static partial class PdfiumNative
         lock (SyncRoot)
         {
             return Imports.FPDF_LoadMemDocument(data, size, password);
+        }
+    }
+
+    internal static IntPtr FPDF_LoadCustomDocument(IntPtr fileAccess, string? password)
+    {
+        lock (SyncRoot)
+        {
+            return Imports.FPDF_LoadCustomDocument(fileAccess, password);
         }
     }
 
@@ -208,6 +240,9 @@ internal static partial class PdfiumNative
 
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         internal static extern IntPtr FPDF_LoadMemDocument(IntPtr data, int size, string? password);
+
+        [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        internal static extern IntPtr FPDF_LoadCustomDocument(IntPtr fileAccess, string? password);
 
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
         internal static extern void FPDF_CloseDocument(IntPtr document);
