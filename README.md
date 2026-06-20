@@ -1,5 +1,10 @@
 # PdfiumRaster
 
+[![NuGet version](https://img.shields.io/nuget/vpre/PdfiumRaster.svg)](https://www.nuget.org/packages/PdfiumRaster)
+[![CI](https://github.com/gabisonia/PdfiumRaster/actions/workflows/ci.yml/badge.svg)](https://github.com/gabisonia/PdfiumRaster/actions/workflows/ci.yml)
+[![Publish NuGet](https://github.com/gabisonia/PdfiumRaster/actions/workflows/publish-nuget.yml/badge.svg)](https://github.com/gabisonia/PdfiumRaster/actions/workflows/publish-nuget.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 PdfiumRaster is a .NET Standard PDF-to-image library backed by PDFium. It focuses on rendering PDF pages to bitmap images with practical controls for DPI, page number, annotations, rotation, sizing, anti-aliasing, grayscale, and black-and-white output.
 
 ## Features
