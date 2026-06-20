@@ -1,0 +1,116 @@
+name: Publish NuGet
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "Release channel"
+        required: true
+        default: "beta"
+        type: choice
+        options:
+          - beta
+          - stable
+      version:
+        description: "Package version. Stable example: 1.0.0. Beta input can be 1.0.0 or 1.0.0-beta.1."
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: nuget
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Compute package version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          input_version="${{ inputs.version }}"
+          channel="${{ inputs.channel }}"
+
+          if [[ "$channel" == "stable" ]]; then
+            if [[ ! "$input_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Stable releases must use a SemVer version without a prerelease suffix, for example 1.0.0." >&2
+              exit 1
+            fi
+
+            package_version="$input_version"
+          else
+            if [[ "$input_version" =~ - ]]; then
+              package_version="$input_version"
+            else
+              package_version="${input_version}-beta.${GITHUB_RUN_NUMBER}"
+            fi
+
+            if [[ ! "$package_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z.-]+$ ]]; then
+              echo "Beta releases must resolve to a SemVer prerelease version, for example 1.0.0-beta.1." >&2
+              exit 1
+            fi
+          fi
+
+          echo "package_version=$package_version" >> "$GITHUB_OUTPUT"
+          echo "Package version: $package_version"
+
+      - name: Restore
+        run: dotnet restore PdfiumRaster.slnx
+
+      - name: Test
+        run: dotnet test PdfiumRaster.slnx --configuration Release --no-restore
+
+      - name: Pack
+        run: >
+          dotnet pack src/PdfiumRaster/PdfiumRaster.csproj
+          --configuration Release
+          --no-restore
+          --output artifacts
+          /p:PackageVersion=${{ steps.version.outputs.package_version }}
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: PdfiumRaster-${{ steps.version.outputs.package_version }}
+          path: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg
+          if-no-files-found: error
+
+      - name: Publish package
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          packages=(artifacts/*.nupkg)
+          symbols=(artifacts/*.snupkg)
+
+          if (( ${#packages[@]} == 0 )); then
+            echo "No .nupkg files found in artifacts/." >&2
+            exit 1
+          fi
+
+          for package in "${packages[@]}"; do
+            dotnet nuget push "$package" \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate
+          done
+
+          for symbol_package in "${symbols[@]}"; do
+            dotnet nuget push "$symbol_package" \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate
+          done
