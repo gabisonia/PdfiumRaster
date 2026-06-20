@@ -1,13 +1,22 @@
 namespace PdfiumRaster;
 
+/// <summary>
+/// Configures how a PDF page is rasterized.
+/// </summary>
 public sealed class PdfPageRenderOptions
 {
+    /// <summary>
+    /// Default render resolution in dots per inch.
+    /// </summary>
     public const double DefaultDpi = 300;
 
     private double _dpi = DefaultDpi;
     private PdfPageRotation _rotation;
     private double _scale = 1;
 
+    /// <summary>
+    /// Gets or sets the render resolution in dots per inch.
+    /// </summary>
     public double Dpi
     {
         get => _dpi;
@@ -23,6 +32,9 @@ public sealed class PdfPageRenderOptions
         }
     }
 
+    /// <summary>
+    /// Gets or sets an additional scale multiplier applied after DPI conversion.
+    /// </summary>
     public double Scale
     {
         get => _scale;
@@ -38,6 +50,9 @@ public sealed class PdfPageRenderOptions
         }
     }
 
+    /// <summary>
+    /// Gets or sets page rotation applied while rendering.
+    /// </summary>
     public PdfPageRotation Rotation
     {
         get => _rotation;
@@ -53,20 +68,47 @@ public sealed class PdfPageRenderOptions
         }
     }
 
+    /// <summary>
+    /// Gets or sets PDFium render flags.
+    /// </summary>
     public PdfRenderFlags Flags { get; set; } = PdfRenderFlags.Annot | PdfRenderFlags.LcdText;
 
+    /// <summary>
+    /// Gets or sets an explicit output width in pixels.
+    /// </summary>
     public int? Width { get; set; }
 
+    /// <summary>
+    /// Gets or sets an explicit output height in pixels.
+    /// </summary>
     public int? Height { get; set; }
 
+    /// <summary>
+    /// Gets or sets whether the missing dimension should be calculated from the page aspect ratio.
+    /// </summary>
     public bool WithAspectRatio { get; set; }
 
+    /// <summary>
+    /// Gets or sets anti-aliasing options.
+    /// </summary>
     public PdfAntiAliasing AntiAliasing { get; set; } = PdfAntiAliasing.All;
 
+    /// <summary>
+    /// Gets or sets the ARGB background color used before rendering.
+    /// </summary>
     public uint BackgroundColor { get; set; } = 0xFFFFFFFF;
 
+    /// <summary>
+    /// Gets or sets whether the bitmap background is filled before rendering the page.
+    /// </summary>
     public bool FillBackground { get; set; } = true;
 
+    /// <summary>
+    /// Calculates the output pixel size for a page size in PDF points.
+    /// </summary>
+    /// <param name="pageWidthPoints">Page width in PDF points.</param>
+    /// <param name="pageHeightPoints">Page height in PDF points.</param>
+    /// <returns>The output width and height in pixels.</returns>
     public (int Width, int Height) GetPixelSize(double pageWidthPoints, double pageHeightPoints)
     {
         if (pageWidthPoints <= 0 || double.IsNaN(pageWidthPoints) || double.IsInfinity(pageWidthPoints))

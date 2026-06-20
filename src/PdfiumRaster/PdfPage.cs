@@ -2,6 +2,9 @@ using System.Runtime.InteropServices;
 
 namespace PdfiumRaster;
 
+/// <summary>
+/// Represents an open PDF page.
+/// </summary>
 public sealed class PdfPage : IDisposable
 {
     private const int BitmapFormatBgra = 4;
@@ -13,6 +16,9 @@ public sealed class PdfPage : IDisposable
         _handle = handle;
     }
 
+    /// <summary>
+    /// Gets the page width in PDF points.
+    /// </summary>
     public double Width
     {
         get
@@ -22,6 +28,9 @@ public sealed class PdfPage : IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets the page height in PDF points.
+    /// </summary>
     public double Height
     {
         get
@@ -31,6 +40,13 @@ public sealed class PdfPage : IDisposable
         }
     }
 
+    /// <summary>
+    /// Renders the page to a bitmap with an explicit pixel size.
+    /// </summary>
+    /// <param name="width">Output width in pixels.</param>
+    /// <param name="height">Output height in pixels.</param>
+    /// <param name="flags">PDFium render flags.</param>
+    /// <returns>The rendered page bitmap.</returns>
     public PdfBitmap Render(int width, int height, PdfRenderFlags flags = PdfRenderFlags.Annot)
     {
         var bitmap = PdfBitmap.Create(width, height);
@@ -38,6 +54,11 @@ public sealed class PdfPage : IDisposable
         return bitmap;
     }
 
+    /// <summary>
+    /// Renders the page to a bitmap using render options.
+    /// </summary>
+    /// <param name="options">Optional render options.</param>
+    /// <returns>The rendered page bitmap.</returns>
     public PdfBitmap Render(PdfPageRenderOptions? options = null)
     {
         ThrowIfDisposed();
@@ -59,6 +80,17 @@ public sealed class PdfPage : IDisposable
         return bitmap;
     }
 
+    /// <summary>
+    /// Renders the page into an existing bitmap.
+    /// </summary>
+    /// <param name="bitmap">Destination bitmap.</param>
+    /// <param name="startX">Horizontal offset in destination pixels.</param>
+    /// <param name="startY">Vertical offset in destination pixels.</param>
+    /// <param name="sizeX">Rendered width in destination pixels.</param>
+    /// <param name="sizeY">Rendered height in destination pixels.</param>
+    /// <param name="rotate">Page rotation.</param>
+    /// <param name="flags">PDFium render flags.</param>
+    /// <param name="backgroundColor">Optional ARGB background color used to fill the bitmap before rendering.</param>
     public void Render(
         PdfBitmap bitmap,
         int startX,
@@ -128,6 +160,9 @@ public sealed class PdfPage : IDisposable
         }
     }
 
+    /// <summary>
+    /// Closes the page and releases associated native resources.
+    /// </summary>
     public void Dispose()
     {
         var handle = Interlocked.Exchange(ref _handle, IntPtr.Zero);

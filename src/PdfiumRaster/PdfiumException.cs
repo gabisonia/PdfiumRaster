@@ -1,5 +1,8 @@
 namespace PdfiumRaster;
 
+/// <summary>
+/// Exception thrown when PDFium reports a native error.
+/// </summary>
 public sealed class PdfiumException : Exception
 {
     private PdfiumException(string message, PdfiumError error)
@@ -8,6 +11,9 @@ public sealed class PdfiumException : Exception
         Error = error;
     }
 
+    /// <summary>
+    /// Gets the PDFium error code.
+    /// </summary>
     public PdfiumError Error { get; }
 
     internal static PdfiumException FromLastError(string message)
