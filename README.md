@@ -128,7 +128,7 @@ PdfImageConverter.SavePageNumber("sample.pdf", pageNumber: 1, "page-bw.png", new
 });
 ```
 
-## Load From Memory
+## Load From Memory Or Stream
 
 ```csharp
 var bytes = File.ReadAllBytes("sample.pdf");
@@ -140,6 +140,8 @@ var fromStream = PdfImageConverter.RenderPage(stream, pageIndex: 0);
 var base64 = Convert.ToBase64String(bytes);
 var fromBase64 = PdfImageConverter.RenderPageFromBase64(base64, pageIndex: 0);
 ```
+
+For large PDFs, prefer a file path or a seekable stream such as `FileStream`. Seekable streams are passed to PDFium through random-access callbacks and are not copied into one managed byte array. Byte arrays and Base64 strings necessarily keep the full PDF in memory. Non-seekable streams are buffered into memory before loading because PDFium needs random access.
 
 ## Page Metadata
 

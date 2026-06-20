@@ -90,6 +90,32 @@ public sealed class PdfAnnotationRenderingTests
     }
 
     [Fact]
+    public void Can_query_page_count_from_seekable_stream_without_closing_when_leave_open()
+    {
+        using var stream = File.OpenRead(GetAnnotationsPdfPath());
+
+        var pageCount = PdfImageConverter.GetPageCount(stream, leaveOpen: true);
+
+        Assert.Equal(3, pageCount);
+        Assert.True(stream.CanRead);
+    }
+
+    [Fact]
+    public void Seekable_stream_stays_open_until_document_is_disposed()
+    {
+        using var pdfium = PdfiumLibrary.Initialize();
+        using var stream = File.OpenRead(GetAnnotationsPdfPath());
+
+        using (var document = PdfDocument.Load(stream, leaveOpen: false))
+        {
+            Assert.Equal(3, document.PageCount);
+            Assert.True(stream.CanRead);
+        }
+
+        Assert.False(stream.CanRead);
+    }
+
+    [Fact]
     public void Can_export_page_as_png_using_page_number()
     {
         var outputDirectory = Path.Combine(AppContext.BaseDirectory, "TestOutput", "formats");
