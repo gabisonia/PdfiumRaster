@@ -6,15 +6,7 @@ This checklist is for publishing `PdfiumRaster` to NuGet.
 
 Create a NuGet.org Trusted Publishing policy for this repository.
 
-The publish workflow uses the `nuget` GitHub Actions environment and requests `id-token: write` permission so NuGet can authenticate the workflow through OpenID Connect. No long-lived `NUGET_API_KEY` secret is required when Trusted Publishing is configured.
-
-Add this GitHub Actions repository variable:
-
-```text
-NUGET_USER
-```
-
-Set it to the NuGet.org profile name that owns the trusted publishing policy. This is used by `NuGet/login@v1` to request a short-lived API key during the workflow run.
+The publish workflow uses the `nuget` GitHub Actions environment and requests `id-token: write` permission so NuGet can authenticate the workflow through OpenID Connect. No long-lived `NUGET_API_KEY` secret or repository variable is required when Trusted Publishing is configured.
 
 Configure the GitHub `nuget` environment with required reviewers if you want an approval gate before publishing.
 
@@ -29,6 +21,7 @@ Inputs:
 ```text
 channel: beta | stable
 version: package version
+nuget_user: NuGet.org profile name that owns the trusted publishing policy
 ```
 
 Stable releases require a version without a prerelease suffix:
