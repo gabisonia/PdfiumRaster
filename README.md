@@ -212,3 +212,7 @@ See [samples/README.md](samples/README.md) for additional sample scenarios and e
 
 - [API reference](docs/API.md)
 - [Sample descriptions](samples/README.md)
+
+## License
+
+PdfiumRaster is licensed under the [MIT License](LICENSE).
