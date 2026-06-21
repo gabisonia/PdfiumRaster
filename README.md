@@ -225,6 +225,7 @@ See [samples/README.md](samples/README.md) for additional sample scenarios and e
 
 - [API reference](docs/API.md)
 - [Architecture and technical design](docs/ARCHITECTURE.md)
+- [Performance notes](docs/PERFORMANCE.md)
 - [Sample descriptions](samples/README.md)
 - [Release checklist](docs/RELEASING.md)
 

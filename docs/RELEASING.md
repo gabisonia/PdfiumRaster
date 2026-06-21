@@ -85,6 +85,12 @@ Local-only tests use ignored assets such as `tests/PdfiumRaster.Tests/TestAssets
 make test-local
 ```
 
+Performance benchmarks are not part of the release gate, but can be run before larger rendering changes:
+
+```bash
+make benchmark
+```
+
 ### 3. Pack Locally
 
 ```bash

@@ -1,6 +1,7 @@
 <Solution>
   <File Path="AGENTS.md" />
   <File Path="Makefile" />
+  <Project Path="benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj" />
   <Project Path="src/PdfiumRaster/PdfiumRaster.csproj" />
   <Project Path="tests/PdfiumRaster.Tests/PdfiumRaster.Tests.csproj" />
 </Solution>

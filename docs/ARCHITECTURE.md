@@ -52,6 +52,8 @@ Inputs can be file paths, byte arrays, streams, or Base64 strings. File paths an
 
 Rendered pages are held as pixel buffers. Memory use grows with page size, DPI, requested width/height, and number of pages held by the caller.
 
+PNG, JPEG, and WebP encoding pins the rendered pixel buffer during synchronous SkiaSharp encoding and avoids copying the full bitmap into a second managed pixel buffer.
+
 ## Native Dependencies
 
 Native PDFium binaries are delivered through NuGet runtime assets:
@@ -132,6 +134,16 @@ make test
 make pack
 make inspect-package
 ```
+
+## Performance Measurement
+
+Performance benchmarks live in `benchmarks/PdfiumRaster.Benchmarks` and are run with:
+
+```bash
+make benchmark
+```
+
+Benchmark guidance and current memory notes are documented in [PERFORMANCE.md](PERFORMANCE.md).
 
 ## Contributor Rules
 

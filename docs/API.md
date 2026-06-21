@@ -4,6 +4,8 @@ This document summarizes the supported public API surface.
 
 For project structure, runtime architecture, native dependency behavior, and contributor guidance, see [Architecture](ARCHITECTURE.md).
 
+For memory and benchmark guidance, see [Performance](PERFORMANCE.md).
+
 ## Primary Facade
 
 Use `PdfImageConverter` for most workflows.
@@ -218,6 +220,13 @@ PdfImageWriter.WriteBmp(bitmap, stream);
 PdfImageWriter.WritePng(bitmap, stream);
 PdfImageWriter.WriteJpeg(bitmap, stream);
 PdfImageWriter.WriteWebp(bitmap, stream);
+```
+
+The converter facade also supports saving directly to streams:
+
+```csharp
+using var stream = File.Create("page.png");
+PdfImageConverter.SavePng("input.pdf", pageNumber: 1, stream);
 ```
 
 ## Native Dependencies
