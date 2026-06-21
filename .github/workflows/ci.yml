@@ -49,7 +49,7 @@ jobs:
           </configuration>
           XML
           dotnet add package PdfiumRaster
-          cp "$GITHUB_WORKSPACE/tests/PdfiumRaster.Tests/TestAssets/annotations.pdf" ./annotations.pdf
+          cp "$GITHUB_WORKSPACE/tests/PdfiumRaster.Tests/TestAssets/axf-annotation-1.pdf" ./annotations.pdf
           cat > Program.cs <<'CS'
           using PdfiumRaster;
 
