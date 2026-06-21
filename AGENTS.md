@@ -85,6 +85,7 @@ make test
 make pack
 make inspect-package
 make clean
+make benchmark
 ```
 
 Keep it listed in `PdfiumRaster.slnx` as a solution item so it is visible in IDEs.

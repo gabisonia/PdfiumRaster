@@ -306,6 +306,32 @@ public static class PdfImageConverter
     }
 
     /// <summary>
+    /// Renders and writes a zero-based page from a PDF file to a stream.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <param name="imageStream">Destination image stream.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    public static void SavePage(
+        string pdfPath,
+        int pageIndex,
+        Stream imageStream,
+        PdfImageConversionOptions? options = null,
+        string? password = null)
+    {
+        if (imageStream is null)
+        {
+            throw new ArgumentNullException(nameof(imageStream));
+        }
+
+        options ??= new PdfImageConversionOptions();
+        var bitmap = RenderPage(pdfPath, pageIndex, options, password);
+
+        SaveBitmap(bitmap, imageStream, options.Format);
+    }
+
+    /// <summary>
     /// Renders and saves a one-based page number from a PDF file.
     /// </summary>
     /// <param name="pdfPath">Path to the PDF file.</param>
@@ -324,6 +350,24 @@ public static class PdfImageConverter
     }
 
     /// <summary>
+    /// Renders and writes a one-based page number from a PDF file to a stream.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageNumber">One-based page number.</param>
+    /// <param name="imageStream">Destination image stream.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    public static void SavePageNumber(
+        string pdfPath,
+        int pageNumber,
+        Stream imageStream,
+        PdfImageConversionOptions? options = null,
+        string? password = null)
+    {
+        SavePage(pdfPath, ToPageIndex(pageNumber), imageStream, options, password);
+    }
+
+    /// <summary>
     /// Renders and saves a one-based page number as PNG.
     /// </summary>
     /// <param name="pdfPath">Path to the PDF file.</param>
@@ -334,6 +378,19 @@ public static class PdfImageConverter
     public static void SavePng(string pdfPath, int pageNumber, string imagePath, PdfImageConversionOptions? options = null, string? password = null)
     {
         SavePageNumber(pdfPath, pageNumber, imagePath, WithFormat(options, PdfImageOutputFormat.Png), password);
+    }
+
+    /// <summary>
+    /// Renders and writes a one-based page number as PNG to a stream.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageNumber">One-based page number.</param>
+    /// <param name="imageStream">Destination image stream.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    public static void SavePng(string pdfPath, int pageNumber, Stream imageStream, PdfImageConversionOptions? options = null, string? password = null)
+    {
+        SavePageNumber(pdfPath, pageNumber, imageStream, WithFormat(options, PdfImageOutputFormat.Png), password);
     }
 
     /// <summary>
@@ -350,6 +407,19 @@ public static class PdfImageConverter
     }
 
     /// <summary>
+    /// Renders and writes a one-based page number as JPEG to a stream.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageNumber">One-based page number.</param>
+    /// <param name="imageStream">Destination image stream.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    public static void SaveJpeg(string pdfPath, int pageNumber, Stream imageStream, PdfImageConversionOptions? options = null, string? password = null)
+    {
+        SavePageNumber(pdfPath, pageNumber, imageStream, WithFormat(options, PdfImageOutputFormat.Jpeg), password);
+    }
+
+    /// <summary>
     /// Renders and saves a one-based page number as WebP.
     /// </summary>
     /// <param name="pdfPath">Path to the PDF file.</param>
@@ -360,6 +430,19 @@ public static class PdfImageConverter
     public static void SaveWebp(string pdfPath, int pageNumber, string imagePath, PdfImageConversionOptions? options = null, string? password = null)
     {
         SavePageNumber(pdfPath, pageNumber, imagePath, WithFormat(options, PdfImageOutputFormat.Webp), password);
+    }
+
+    /// <summary>
+    /// Renders and writes a one-based page number as WebP to a stream.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageNumber">One-based page number.</param>
+    /// <param name="imageStream">Destination image stream.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    public static void SaveWebp(string pdfPath, int pageNumber, Stream imageStream, PdfImageConversionOptions? options = null, string? password = null)
+    {
+        SavePageNumber(pdfPath, pageNumber, imageStream, WithFormat(options, PdfImageOutputFormat.Webp), password);
     }
 
     /// <summary>
@@ -445,7 +528,9 @@ public static class PdfImageConverter
         options ??= new PdfImageConversionOptions();
         var extension = GetExtension(options.Format);
 
-        for (var pageIndex = 0; pageIndex < document.PageCount; pageIndex++)
+        var pageCount = document.PageCount;
+
+        for (var pageIndex = 0; pageIndex < pageCount; pageIndex++)
         {
             using var page = document.LoadPage(pageIndex);
             var bitmap = page.Render(GetRenderOptions(options));
@@ -455,7 +540,7 @@ public static class PdfImageConverter
             SaveBitmap(bitmap, imagePath, options.Format);
         }
 
-        return document.PageCount;
+        return pageCount;
     }
 
     /// <summary>
@@ -489,6 +574,43 @@ public static class PdfImageConverter
                 break;
             case PdfImageOutputFormat.Webp:
                 PdfImageWriter.SaveWebp(bitmap, path);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(format), format, "Image format is not supported.");
+        }
+    }
+
+    /// <summary>
+    /// Writes a rendered bitmap to a stream in the requested image format.
+    /// </summary>
+    /// <param name="bitmap">Rendered bitmap to save.</param>
+    /// <param name="stream">Destination image stream.</param>
+    /// <param name="format">Image output format.</param>
+    public static void SaveBitmap(PdfBitmap bitmap, Stream stream, PdfImageOutputFormat format)
+    {
+        if (bitmap is null)
+        {
+            throw new ArgumentNullException(nameof(bitmap));
+        }
+
+        if (stream is null)
+        {
+            throw new ArgumentNullException(nameof(stream));
+        }
+
+        switch (format)
+        {
+            case PdfImageOutputFormat.Bmp:
+                PdfImageWriter.WriteBmp(bitmap, stream);
+                break;
+            case PdfImageOutputFormat.Png:
+                PdfImageWriter.WritePng(bitmap, stream);
+                break;
+            case PdfImageOutputFormat.Jpeg:
+                PdfImageWriter.WriteJpeg(bitmap, stream);
+                break;
+            case PdfImageOutputFormat.Webp:
+                PdfImageWriter.WriteWebp(bitmap, stream);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(format), format, "Image format is not supported.");

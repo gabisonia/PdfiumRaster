@@ -6,7 +6,7 @@ ARTIFACTS_DIR := artifacts
 PACKAGE_VERSION := 0.1.0
 PACKAGE := $(ARTIFACTS_DIR)/PdfiumRaster.$(PACKAGE_VERSION).nupkg
 
-.PHONY: help restore build test test-local pack inspect-package smoke-package release-check clean
+.PHONY: help restore build test test-local pack inspect-package smoke-package benchmark release-check clean
 
 help:
 	@printf '%s\n' \
@@ -18,6 +18,7 @@ help:
 		'  make pack             Create NuGet and symbol packages' \
 		'  make inspect-package  List package contents and nuspec metadata' \
 		'  make smoke-package    Install the local package in a fresh app and render a page' \
+		'  make benchmark        Run BenchmarkDotNet performance benchmarks' \
 		'  make release-check    Run tests, pack, inspect, and package smoke test' \
 		'  make clean            Remove build and package outputs'
 
@@ -68,8 +69,11 @@ smoke-package: $(PACKAGE)
 		'}' > Program.cs; \
 	dotnet run --configuration Release
 
+benchmark:
+	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts
+
 release-check: test pack inspect-package smoke-package
 
 clean:
 	dotnet clean $(SOLUTION)
-	rm -rf $(ARTIFACTS_DIR) src/PdfiumRaster/bin src/PdfiumRaster/obj tests/PdfiumRaster.Tests/bin tests/PdfiumRaster.Tests/obj
+	rm -rf $(ARTIFACTS_DIR) BenchmarkDotNet.Artifacts benchmarks/PdfiumRaster.Benchmarks/bin benchmarks/PdfiumRaster.Benchmarks/obj src/PdfiumRaster/bin src/PdfiumRaster/obj tests/PdfiumRaster.Tests/bin tests/PdfiumRaster.Tests/obj

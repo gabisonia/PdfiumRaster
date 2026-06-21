@@ -176,23 +176,22 @@ public static class PdfImageWriter
             throw new ArgumentNullException(nameof(stream));
         }
 
-        using var skBitmap = new SKBitmap(bitmap.Width, bitmap.Height, SKColorType.Bgra8888, SKAlphaType.Unpremul);
-        var pixels = skBitmap.GetPixels();
+        var pinnedPixels = GCHandle.Alloc(bitmap.Pixels, GCHandleType.Pinned);
 
-        if (skBitmap.RowBytes == bitmap.Stride)
+        try
         {
-            Marshal.Copy(bitmap.Pixels, 0, pixels, bitmap.Stride * bitmap.Height);
-        }
-        else
-        {
-            for (var row = 0; row < bitmap.Height; row++)
-            {
-                Marshal.Copy(bitmap.Pixels, row * bitmap.Stride, pixels + row * skBitmap.RowBytes, bitmap.Stride);
-            }
-        }
+            var imageInfo = new SKImageInfo(bitmap.Width, bitmap.Height, SKColorType.Bgra8888, SKAlphaType.Unpremul);
+            using var pixmap = new SKPixmap(imageInfo, pinnedPixels.AddrOfPinnedObject(), bitmap.Stride);
+            using var image = SKImage.FromPixels(pixmap)
+                              ?? throw new InvalidOperationException("Could not create encoded image from bitmap pixels.");
+            using var data = image.Encode(format, quality)
+                             ?? throw new InvalidOperationException("Could not encode bitmap image.");
 
-        using var image = SKImage.FromBitmap(skBitmap);
-        using var data = image.Encode(format, quality);
-        data.SaveTo(stream);
+            data.SaveTo(stream);
+        }
+        finally
+        {
+            pinnedPixels.Free();
+        }
     }
 }

@@ -4,6 +4,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageVersion Include="BenchmarkDotNet" Version="0.15.2" />
     <PackageVersion Include="bblanchon.PDFium.Linux" Version="151.0.7891" />
     <PackageVersion Include="bblanchon.PDFium.macOS" Version="151.0.7891" />
     <PackageVersion Include="bblanchon.PDFium.Win32" Version="151.0.7891" />

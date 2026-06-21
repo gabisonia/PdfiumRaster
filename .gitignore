@@ -2,6 +2,7 @@ bin/
 obj/
 TestOutput/
 artifacts/
+BenchmarkDotNet.Artifacts/
 *.nupkg
 *.snupkg
 tests/PdfiumRaster.Tests/TestAssets/annotations.pdf
