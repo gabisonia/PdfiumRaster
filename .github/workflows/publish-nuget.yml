@@ -74,7 +74,7 @@ jobs:
         run: dotnet restore PdfiumRaster.slnx
 
       - name: Test
-        run: dotnet test PdfiumRaster.slnx --configuration Release --no-restore
+        run: dotnet test PdfiumRaster.slnx --configuration Release --no-restore --filter "Category!=Local"
 
       - name: Pack
         run: >
