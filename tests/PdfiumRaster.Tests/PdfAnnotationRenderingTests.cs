@@ -21,6 +21,43 @@ public sealed class PdfAnnotationRenderingTests
     }
 
     [Theory]
+    [Trait("Category", "Local")]
+    [InlineData("TestAssets/annotations.pdf")]
+    public void Export_all_local_annotations_pdf_pages_to_test_output(string relativePdfPath)
+    {
+        Assert.True(
+            IsPdfiumNativeAvailable(),
+            "PDFium native library was not found. Add libpdfium.dylib/pdfium.dll/libpdfium.so beside the test output or in the platform loader path to generate images.");
+
+        var pdfPath = GetTestPdfPath(relativePdfPath);
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "TestOutput", "annotations");
+
+        if (Directory.Exists(outputDirectory))
+        {
+            Directory.Delete(outputDirectory, recursive: true);
+        }
+
+        var pageCount = PdfImageConverter.SaveDocument(
+            pdfPath,
+            outputDirectory,
+            fileNamePrefix: "annotations-page",
+            options: new PdfImageConversionOptions
+            {
+                Render = new PdfPageRenderOptions
+                {
+                    Dpi = 144,
+                    Flags = PdfRenderFlags.Annot | PdfRenderFlags.LcdText,
+                },
+                ColorMode = PdfImageColorMode.Color,
+            });
+
+        var images = Directory.GetFiles(outputDirectory, "*.bmp");
+
+        Assert.Equal(pageCount, images.Length);
+        Assert.All(images, image => Assert.True(new FileInfo(image).Length > 54));
+    }
+
+    [Theory]
     [InlineData("TestAssets/axf-annotation-1.pdf")]
     public void Render_with_annotations_changes_pixels_for_annotation_pdf(string relativePdfPath)
     {

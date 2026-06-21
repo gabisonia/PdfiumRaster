@@ -51,7 +51,7 @@ This resolves to:
 1.0.0-beta.<github-run-number>
 ```
 
-The workflow restores, tests, packs, uploads package artifacts, and publishes both `.nupkg` and `.snupkg` files to NuGet.org using Trusted Publishing.
+The workflow restores, tests, packs, smoke-tests the package in a fresh app, uploads package artifacts, and publishes both `.nupkg` and `.snupkg` files to NuGet.org using Trusted Publishing.
 
 ## Local Release Checklist
 
@@ -71,10 +71,18 @@ Use semantic versioning. Suggested first release:
 
 The manual workflow can override this with `/p:PackageVersion=<version>`, so updating `VersionPrefix` is mostly for source consistency.
 
-### 2. Run Tests
+### 2. Run Release Checks
 
 ```bash
-make test
+make release-check
+```
+
+This runs the normal test suite, creates the NuGet and symbol packages, inspects the package contents, installs the local package into a fresh console app, and renders one page to confirm native assets load correctly.
+
+Local-only tests use ignored assets such as `tests/PdfiumRaster.Tests/TestAssets/annotations.pdf` and are not part of `make release-check`. Run them separately when the local asset exists:
+
+```bash
+make test-local
 ```
 
 ### 3. Pack Locally
@@ -119,32 +127,10 @@ SkiaSharp.NativeAssets.Win32
 ### 5. Smoke Test Local Package
 
 ```bash
-tmpdir=$(mktemp -d)
-dotnet new console -n PdfiumRasterSmoke -o "$tmpdir/PdfiumRasterSmoke" --framework net10.0
-cd "$tmpdir/PdfiumRasterSmoke"
-cat > NuGet.config <<XML
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-  <packageSources>
-    <clear />
-    <add key="local" value="/path/to/repo/artifacts" />
-    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-  </packageSources>
-</configuration>
-XML
-
-dotnet add package PdfiumRaster
+make smoke-package
 ```
 
-Use a real PDF and run:
-
-```csharp
-using PdfiumRaster;
-
-PdfImageConverter.SavePng("input.pdf", pageNumber: 1, "page.png");
-```
-
-The app should run without manually copying PDFium native binaries.
+The smoke test installs the local package into a fresh console app and renders a tracked test PDF without manually copying PDFium native binaries.
 
 ### 6. Publish Manually From CLI
 
