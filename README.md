@@ -211,10 +211,12 @@ Run local-only tests that use ignored assets such as `annotations.pdf`:
 make test-local
 ```
 
-Rendering tests write generated images under the test output directory:
+Rendering tests write generated images under the test output directory. Normal tests use tracked PDFs, while `make test-local` also writes local annotation renders from ignored `annotations.pdf`:
 
 ```text
 tests/PdfiumRaster.Tests/bin/Debug/net10.0/TestOutput/
+tests/PdfiumRaster.Tests/bin/Debug/net10.0/TestOutput/annotations/
+tests/PdfiumRaster.Tests/bin/Debug/net10.0/TestOutput/formats/
 ```
 
 ## Samples
