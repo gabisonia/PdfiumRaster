@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 SOLUTION := PdfiumRaster.slnx
 PROJECT := src/PdfiumRaster/PdfiumRaster.csproj
 CONFIGURATION := Release
@@ -5,7 +6,7 @@ ARTIFACTS_DIR := artifacts
 PACKAGE_VERSION := 0.1.0
 PACKAGE := $(ARTIFACTS_DIR)/PdfiumRaster.$(PACKAGE_VERSION).nupkg
 
-.PHONY: help restore build test test-local pack inspect-package clean
+.PHONY: help restore build test test-local pack inspect-package smoke-package release-check clean
 
 help:
 	@printf '%s\n' \
@@ -16,6 +17,8 @@ help:
 		'  make test-local       Run local-only tests that use ignored assets' \
 		'  make pack             Create NuGet and symbol packages' \
 		'  make inspect-package  List package contents and nuspec metadata' \
+		'  make smoke-package    Install the local package in a fresh app and render a page' \
+		'  make release-check    Run tests, pack, inspect, and package smoke test' \
 		'  make clean            Remove build and package outputs'
 
 restore:
@@ -36,6 +39,36 @@ pack:
 inspect-package: $(PACKAGE)
 	unzip -l $(PACKAGE)
 	unzip -p $(PACKAGE) PdfiumRaster.nuspec
+
+smoke-package: $(PACKAGE)
+	set -euo pipefail; \
+	repo="$$(pwd)"; \
+	tmpdir="$$(mktemp -d)"; \
+	dotnet new console -n PdfiumRasterSmoke -o "$$tmpdir/PdfiumRasterSmoke" --framework net10.0 >/dev/null; \
+	cd "$$tmpdir/PdfiumRasterSmoke"; \
+	printf '%s\n' \
+		'<?xml version="1.0" encoding="utf-8"?>' \
+		'<configuration>' \
+		'  <packageSources>' \
+		'    <clear />' \
+		"    <add key=\"local\" value=\"$$repo/$(ARTIFACTS_DIR)\" />" \
+		'    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />' \
+		'  </packageSources>' \
+		'</configuration>' > NuGet.config; \
+	dotnet add package PdfiumRaster --version $(PACKAGE_VERSION) >/dev/null; \
+	cp "$$repo/tests/PdfiumRaster.Tests/TestAssets/axf-annotation-1.pdf" ./input.pdf; \
+	printf '%s\n' \
+		'using PdfiumRaster;' \
+		'' \
+		'PdfImageConverter.SavePng("input.pdf", pageNumber: 1, "page.png");' \
+		'' \
+		'if (!File.Exists("page.png") || new FileInfo("page.png").Length == 0)' \
+		'{' \
+		'    throw new InvalidOperationException("Smoke test did not generate page.png.");' \
+		'}' > Program.cs; \
+	dotnet run --configuration Release
+
+release-check: test pack inspect-package smoke-package
 
 clean:
 	dotnet clean $(SOLUTION)

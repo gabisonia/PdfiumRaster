@@ -17,6 +17,8 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageTags>pdf;pdfium;raster;image;converter</PackageTags>
     <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/gabisonia/PdfiumRaster</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/gabisonia/PdfiumRaster</PackageProjectUrl>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>

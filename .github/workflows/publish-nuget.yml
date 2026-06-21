@@ -84,6 +84,38 @@ jobs:
           --output artifacts
           /p:PackageVersion=${{ steps.version.outputs.package_version }}
 
+      - name: Smoke test package install
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tmpdir="$(mktemp -d)"
+          dotnet new console -n PdfiumRasterSmoke -o "$tmpdir/PdfiumRasterSmoke" --framework net10.0
+          cd "$tmpdir/PdfiumRasterSmoke"
+          cat > NuGet.config <<XML
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="local" value="$GITHUB_WORKSPACE/artifacts" />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+            </packageSources>
+          </configuration>
+          XML
+          dotnet add package PdfiumRaster --version "${{ steps.version.outputs.package_version }}"
+          cp "$GITHUB_WORKSPACE/tests/PdfiumRaster.Tests/TestAssets/axf-annotation-1.pdf" ./input.pdf
+          cat > Program.cs <<'CS'
+          using PdfiumRaster;
+
+          PdfImageConverter.SavePng("input.pdf", pageNumber: 1, "page.png");
+
+          if (!File.Exists("page.png") || new FileInfo("page.png").Length == 0)
+          {
+              throw new InvalidOperationException("Smoke test did not generate page.png.");
+          }
+          CS
+          dotnet run --configuration Release
+
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
