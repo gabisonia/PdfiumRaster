@@ -20,8 +20,12 @@
     <ProjectReference Include="..\..\src\PdfiumRaster\PdfiumRaster.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="TestAssets\*.pdf" Exclude="TestAssets\annotations.pdf" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <!--
-  Local-only PDF test asset. PDF files under TestAssets are gitignored.
+  Local-only PDF test asset. This file is gitignored.
   Uncomment locally if you want the asset copied to the test output:
   <ItemGroup>
     <None Include="TestAssets\annotations.pdf" CopyToOutputDirectory="PreserveNewest" />

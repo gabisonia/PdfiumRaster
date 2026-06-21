@@ -4,7 +4,7 @@ TestOutput/
 artifacts/
 *.nupkg
 *.snupkg
-tests/PdfiumRaster.Tests/TestAssets/*.pdf
+tests/PdfiumRaster.Tests/TestAssets/annotations.pdf
 
 .DS_Store
 *.user

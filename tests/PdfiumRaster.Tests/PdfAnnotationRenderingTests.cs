@@ -4,29 +4,31 @@ namespace PdfiumRaster.Tests;
 
 public sealed class PdfAnnotationRenderingTests
 {
-    [Fact]
-    public void Annotations_pdf_is_available_as_test_asset()
+    [Theory]
+    [InlineData("TestAssets/smoke.pdf")]
+    [InlineData("TestAssets/axf-annotation-1.pdf")]
+    public void Pdf_is_available_as_test_asset(string relativePdfPath)
     {
-        if (!TryGetAnnotationsPdfPath(out var pdfPath))
-        {
-            return;
-        }
-
-        Assert.True(File.Exists(pdfPath));
+        Assert.True(File.Exists(GetTestPdfPath(relativePdfPath)));
     }
 
-    [Fact]
-    public void Render_with_annotations_changes_pixels_for_annotations_pdf()
+    [Theory(Skip = "Local-only annotation PDF is ignored by Git.")]
+    [InlineData("TestAssets/annotations.pdf")]
+    public void Local_annotations_pdf_is_available_as_test_asset(string relativePdfPath)
+    {
+        Assert.True(File.Exists(GetTestPdfPath(relativePdfPath)));
+    }
+
+    [Theory]
+    [InlineData("TestAssets/axf-annotation-1.pdf")]
+    public void Render_with_annotations_changes_pixels_for_annotation_pdf(string relativePdfPath)
     {
         if (!IsPdfiumNativeAvailable())
         {
             return;
         }
 
-        if (!TryGetAnnotationsPdfPath(out var pdfPath))
-        {
-            return;
-        }
+        var pdfPath = GetTestPdfPath(relativePdfPath);
 
         using var pdfium = PdfiumLibrary.Initialize();
         using var document = PdfDocument.Load(pdfPath);
@@ -48,19 +50,17 @@ public sealed class PdfAnnotationRenderingTests
         Assert.NotEqual(withoutAnnotations.Pixels, withAnnotations.Pixels);
     }
 
-    [Fact]
-    public void Export_all_annotations_pdf_pages_to_test_output()
+    [Theory]
+    [InlineData("TestAssets/smoke.pdf")]
+    [InlineData("TestAssets/axf-annotation-1.pdf")]
+    public void Export_all_pdf_pages_to_test_output(string relativePdfPath)
     {
         Assert.True(
             IsPdfiumNativeAvailable(),
             "PDFium native library was not found. Add libpdfium.dylib/pdfium.dll/libpdfium.so beside the test output or in the platform loader path to generate images.");
 
-        if (!TryGetAnnotationsPdfPath(out var pdfPath))
-        {
-            return;
-        }
-
-        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "TestOutput", "annotations");
+        var pdfPath = GetTestPdfPath(relativePdfPath);
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "TestOutput", Path.GetFileNameWithoutExtension(relativePdfPath));
 
         if (Directory.Exists(outputDirectory))
         {
@@ -70,7 +70,7 @@ public sealed class PdfAnnotationRenderingTests
         var pageCount = PdfImageConverter.SaveDocument(
             pdfPath,
             outputDirectory,
-            fileNamePrefix: "annotations-page",
+            fileNamePrefix: "page",
             options: new PdfImageConversionOptions
             {
                 Render = new PdfPageRenderOptions
@@ -87,20 +87,17 @@ public sealed class PdfAnnotationRenderingTests
         Assert.All(images, image => Assert.True(new FileInfo(image).Length > 54));
     }
 
-    [Fact]
-    public void Can_query_page_count_and_sizes_from_bytes()
+    [Theory]
+    [InlineData("TestAssets/smoke.pdf")]
+    [InlineData("TestAssets/axf-annotation-1.pdf")]
+    public void Can_query_page_count_and_sizes_from_bytes(string relativePdfPath)
     {
-        if (!TryGetAnnotationsPdfPath(out var pdfPath))
-        {
-            return;
-        }
-
-        var pdfBytes = File.ReadAllBytes(pdfPath);
+        var pdfBytes = File.ReadAllBytes(GetTestPdfPath(relativePdfPath));
 
         var pageCount = PdfImageConverter.GetPageCount(pdfBytes);
         var pageSizes = PdfImageConverter.GetPageSizes(pdfBytes);
 
-        Assert.Equal(3, pageCount);
+        Assert.True(pageCount > 0);
         Assert.Equal(pageCount, pageSizes.Count);
         Assert.All(pageSizes, size =>
         {
@@ -109,57 +106,48 @@ public sealed class PdfAnnotationRenderingTests
         });
     }
 
-    [Fact]
-    public void Can_query_page_count_from_seekable_stream_without_closing_when_leave_open()
+    [Theory]
+    [InlineData("TestAssets/smoke.pdf")]
+    [InlineData("TestAssets/axf-annotation-1.pdf")]
+    public void Can_query_page_count_from_seekable_stream_without_closing_when_leave_open(string relativePdfPath)
     {
-        if (!TryGetAnnotationsPdfPath(out var pdfPath))
-        {
-            return;
-        }
-
-        using var stream = File.OpenRead(pdfPath);
+        using var stream = File.OpenRead(GetTestPdfPath(relativePdfPath));
 
         var pageCount = PdfImageConverter.GetPageCount(stream, leaveOpen: true);
 
-        Assert.Equal(3, pageCount);
+        Assert.True(pageCount > 0);
         Assert.True(stream.CanRead);
     }
 
-    [Fact]
-    public void Seekable_stream_stays_open_until_document_is_disposed()
+    [Theory]
+    [InlineData("TestAssets/smoke.pdf")]
+    [InlineData("TestAssets/axf-annotation-1.pdf")]
+    public void Seekable_stream_stays_open_until_document_is_disposed(string relativePdfPath)
     {
-        if (!TryGetAnnotationsPdfPath(out var pdfPath))
-        {
-            return;
-        }
-
         using var pdfium = PdfiumLibrary.Initialize();
-        using var stream = File.OpenRead(pdfPath);
+        using var stream = File.OpenRead(GetTestPdfPath(relativePdfPath));
 
         using (var document = PdfDocument.Load(stream, leaveOpen: false))
         {
-            Assert.Equal(3, document.PageCount);
+            Assert.True(document.PageCount > 0);
             Assert.True(stream.CanRead);
         }
 
         Assert.False(stream.CanRead);
     }
 
-    [Fact]
-    public void Can_export_page_as_png_using_page_number()
+    [Theory]
+    [InlineData("TestAssets/smoke.pdf")]
+    [InlineData("TestAssets/axf-annotation-1.pdf")]
+    public void Can_export_page_as_png_using_page_number(string relativePdfPath)
     {
-        if (!TryGetAnnotationsPdfPath(out var pdfPath))
-        {
-            return;
-        }
-
         var outputDirectory = Path.Combine(AppContext.BaseDirectory, "TestOutput", "formats");
         Directory.CreateDirectory(outputDirectory);
 
-        var imagePath = Path.Combine(outputDirectory, "annotations-page-0001.png");
+        var imagePath = Path.Combine(outputDirectory, $"{Path.GetFileNameWithoutExtension(relativePdfPath)}-page-0001.png");
 
         PdfImageConverter.SavePng(
-            pdfPath,
+            GetTestPdfPath(relativePdfPath),
             pageNumber: 1,
             imagePath,
             new PdfImageConversionOptions
@@ -179,10 +167,9 @@ public sealed class PdfAnnotationRenderingTests
         Assert.Equal((byte)'G', bytes[3]);
     }
 
-    private static bool TryGetAnnotationsPdfPath(out string path)
+    private static string GetTestPdfPath(string relativePdfPath)
     {
-        path = Path.Combine(AppContext.BaseDirectory, "TestAssets", "annotations.pdf");
-        return File.Exists(path);
+        return Path.Combine(AppContext.BaseDirectory, relativePdfPath);
     }
 
     private static bool IsPdfiumNativeAvailable()
