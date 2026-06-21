@@ -2,6 +2,8 @@
 
 This document summarizes the supported public API surface.
 
+For project structure, runtime architecture, native dependency behavior, and contributor guidance, see [Architecture](ARCHITECTURE.md).
+
 ## Primary Facade
 
 Use `PdfImageConverter` for most workflows.

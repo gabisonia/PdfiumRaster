@@ -192,23 +192,29 @@ PDFium is not thread-safe. PdfiumRaster serializes native PDFium calls with a sh
 ```text
 src/PdfiumRaster/                  library source
 tests/PdfiumRaster.Tests/          unit and rendering tests
-tests/PdfiumRaster.Tests/TestAssets/annotations.pdf
+tests/PdfiumRaster.Tests/TestAssets/ tracked and local-only test PDFs
 samples/                           sample descriptions
 docs/                              API and behavior notes
 ```
 
 ## Tests
 
-Run all tests:
+Run the normal test suite:
 
 ```bash
-dotnet test PdfiumRaster.slnx
+make test
 ```
 
-The annotation export test writes generated images to:
+Run local-only tests that use ignored assets such as `annotations.pdf`:
+
+```bash
+make test-local
+```
+
+Rendering tests write generated images under the test output directory:
 
 ```text
-tests/PdfiumRaster.Tests/bin/Debug/net10.0/TestOutput/annotations/
+tests/PdfiumRaster.Tests/bin/Debug/net10.0/TestOutput/
 ```
 
 ## Samples
@@ -218,6 +224,7 @@ See [samples/README.md](samples/README.md) for additional sample scenarios and e
 ## Documentation
 
 - [API reference](docs/API.md)
+- [Architecture and technical design](docs/ARCHITECTURE.md)
 - [Sample descriptions](samples/README.md)
 - [Release checklist](docs/RELEASING.md)
 

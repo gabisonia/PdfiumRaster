@@ -199,16 +199,22 @@ Expected output:
 placed-page.bmp
 ```
 
-## Annotation Test Output
+## Rendering Test Output
 
-The test suite uses `tests/PdfiumRaster.Tests/TestAssets/annotations.pdf` and writes rendered pages to:
+The normal test suite renders tracked PDF assets and writes generated images under the test output directory:
 
 ```text
-tests/PdfiumRaster.Tests/bin/Debug/net10.0/TestOutput/annotations/
+tests/PdfiumRaster.Tests/bin/Debug/net10.0/TestOutput/
 ```
 
-Run only that export test:
+Run the normal test suite:
 
 ```bash
-dotnet test PdfiumRaster.slnx --filter Export_all_annotations_pdf_pages_to_test_output
+make test
+```
+
+Run local-only tests that use ignored assets such as `tests/PdfiumRaster.Tests/TestAssets/annotations.pdf`:
+
+```bash
+make test-local
 ```
