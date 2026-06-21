@@ -43,7 +43,7 @@ PdfiumRaster is a .NET Standard PDF-to-image library backed by PDFium. Keep the 
 
 ## Tests
 
-- Use the bundled `tests/PdfiumRaster.Tests/TestAssets/annotations.pdf` for PDF rendering coverage.
+- Use a local ignored PDF under `tests/PdfiumRaster.Tests/TestAssets/` for PDF rendering coverage when needed.
 - Add focused tests for new public behavior and native lifetime changes.
 - Run tests through the Makefile:
 

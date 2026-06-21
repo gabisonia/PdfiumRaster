@@ -20,9 +20,13 @@
     <ProjectReference Include="..\..\src\PdfiumRaster\PdfiumRaster.csproj" />
   </ItemGroup>
 
+  <!--
+  Local-only PDF test asset. PDF files under TestAssets are gitignored.
+  Uncomment locally if you want the asset copied to the test output:
   <ItemGroup>
     <None Include="TestAssets\annotations.pdf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  -->
 
   <ItemGroup>
     <Using Include="Xunit" />
