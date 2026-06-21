@@ -1,0 +1,142 @@
+# PdfiumRaster Architecture
+
+This document explains how PdfiumRaster is organized and how the main technical pieces fit together. It is intended for package users who need to understand runtime behavior and contributors who need to change the library safely.
+
+## Project Purpose
+
+PdfiumRaster is a focused PDF-to-image library. Its scope is rendering PDF pages to bitmap images, saving rendered pages, and exposing the page metadata needed for those workflows.
+
+The project does not aim to provide PDF editing, text extraction, form filling, signing, or viewer UI features.
+
+## Repository Structure
+
+```text
+src/PdfiumRaster/                  library source
+tests/PdfiumRaster.Tests/          tests and rendering coverage
+tests/PdfiumRaster.Tests/TestAssets/
+samples/                           sample scenarios
+docs/                              API, architecture, and release docs
+.github/workflows/                 CI and NuGet publishing workflows
+Directory.Packages.props           central package versions
+Makefile                           standard local command surface
+```
+
+The library targets `netstandard2.0`. Tests target modern .NET and exercise the package through the public API whenever possible.
+
+## Main Components
+
+`PdfImageConverter` is the high-level facade. It covers the common workflows: page count, page sizes, render a page, render by 1-based page number, render selected pages, render all pages, and save pages as images.
+
+`PdfDocument` and `PdfPage` are the lower-level document/page API. Use these when a caller needs direct control over document lifetime, page lifetime, target bitmap placement, or manual rendering.
+
+`PdfiumNative` is the native boundary. PDFium P/Invoke declarations and platform-specific native loading rules should stay centralized there.
+
+`PdfBitmap` is the managed representation of rendered BGRA pixels. It carries width, height, stride, and the pixel buffer used by render and image-writing code.
+
+`PdfImageWriter` writes existing `PdfBitmap` instances. BMP is written directly by PdfiumRaster. PNG, JPEG, and WebP are encoded through SkiaSharp.
+
+Options are split by responsibility:
+
+- `PdfPageRenderOptions` controls rendering size, DPI, rotation, background, anti-aliasing, and PDFium render flags.
+- `PdfImageConversionOptions` controls output format, color mode, black-and-white threshold, and render options.
+
+## Rendering Flow
+
+A typical conversion follows this path:
+
+```text
+PDF input -> PdfDocument -> PdfPage -> PDFium render -> PdfBitmap -> color mode -> image writer
+```
+
+Inputs can be file paths, byte arrays, streams, or Base64 strings. File paths and seekable streams are preferred for large files because they avoid copying the whole PDF into one managed byte array.
+
+Rendered pages are held as pixel buffers. Memory use grows with page size, DPI, requested width/height, and number of pages held by the caller.
+
+## Native Dependencies
+
+Native PDFium binaries are delivered through NuGet runtime assets:
+
+```text
+bblanchon.PDFium.Linux
+bblanchon.PDFium.macOS
+bblanchon.PDFium.Win32
+```
+
+SkiaSharp runtime assets are also referenced so PNG, JPEG, and WebP output works after package restore. Consumers should be able to install the package and run basic rendering code without manually copying native binaries.
+
+Native package versions are managed centrally in `Directory.Packages.props`. Do not add package versions directly to project files.
+
+## Large File Behavior
+
+For large PDFs, prefer:
+
+```csharp
+PdfImageConverter.SavePng("large.pdf", pageNumber: 1, "page.png");
+```
+
+or:
+
+```csharp
+using var stream = File.OpenRead("large.pdf");
+var pageCount = PdfImageConverter.GetPageCount(stream, leaveOpen: true);
+```
+
+Seekable streams use PDFium custom file access and are not copied into one managed byte array. Byte array and Base64 APIs keep the full PDF in memory. Non-seekable streams are buffered because PDFium requires random access.
+
+Large rendered pages can still allocate large pixel buffers. DPI, page dimensions, requested output width/height, and parallel rendering strategy matter as much as PDF input size.
+
+## Threading Model
+
+PDFium is not thread-safe. PdfiumRaster serializes native PDFium calls with a shared lock.
+
+For application code, this means a single process should not expect true parallel PDFium rendering. If true parallel rendering is required, use multiple processes and keep each process isolated.
+
+## Test Strategy
+
+The normal test suite uses tracked assets and excludes local-only tests:
+
+```bash
+make test
+```
+
+Local-only tests use ignored assets such as `tests/PdfiumRaster.Tests/TestAssets/annotations.pdf` and are marked with `Category=Local`:
+
+```bash
+make test-local
+```
+
+The ignored local PDF is useful for validating private or larger annotation-heavy documents without committing them. CI runs the non-local test suite and uses tracked test assets only.
+
+Rendering tests write generated images under the test output directory, for example:
+
+```text
+tests/PdfiumRaster.Tests/bin/Debug/net10.0/TestOutput/
+```
+
+## Packaging And Release Model
+
+The NuGet package includes:
+
+- `lib/netstandard2.0/PdfiumRaster.dll`
+- XML documentation for IntelliSense
+- `README.md` as the package readme
+- symbol package output
+- transitive native PDFium and SkiaSharp runtime assets
+
+Releases are documented in [RELEASING.md](RELEASING.md). Publishing is handled by the manual GitHub Actions workflow using NuGet Trusted Publishing.
+
+Before release-related changes are considered complete, run:
+
+```bash
+make test
+make pack
+make inspect-package
+```
+
+## Contributor Rules
+
+Keep PDFium calls inside `PdfiumNative`, preserve the shared native lock, and keep callback delegates and unmanaged structures alive for the full native lifetime that PDFium expects.
+
+Public APIs should remain simple and backward compatible. Add overloads rather than changing existing method semantics once a behavior is released.
+
+Every public type, member, enum value, and overload should have useful XML documentation. Comments should call out page index vs page number, pixel/PDF point/DPI units, stream ownership, and memory behavior where relevant.
