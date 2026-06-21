@@ -5,14 +5,15 @@ ARTIFACTS_DIR := artifacts
 PACKAGE_VERSION := 0.1.0
 PACKAGE := $(ARTIFACTS_DIR)/PdfiumRaster.$(PACKAGE_VERSION).nupkg
 
-.PHONY: help restore build test pack inspect-package clean
+.PHONY: help restore build test test-local pack inspect-package clean
 
 help:
 	@printf '%s\n' \
 		'Available targets:' \
 		'  make restore          Restore NuGet packages' \
 		'  make build            Build the solution in Release mode' \
-		'  make test             Run the test suite' \
+		'  make test             Run the test suite, excluding local-only tests' \
+		'  make test-local       Run local-only tests that use ignored assets' \
 		'  make pack             Create NuGet and symbol packages' \
 		'  make inspect-package  List package contents and nuspec metadata' \
 		'  make clean            Remove build and package outputs'
@@ -24,7 +25,10 @@ build:
 	dotnet build $(SOLUTION) -c $(CONFIGURATION) --no-restore
 
 test:
-	dotnet test $(SOLUTION)
+	dotnet test $(SOLUTION) --filter "Category!=Local"
+
+test-local:
+	dotnet test $(SOLUTION) --filter "Category=Local"
 
 pack:
 	dotnet pack $(PROJECT) -c $(CONFIGURATION) -o $(ARTIFACTS_DIR)

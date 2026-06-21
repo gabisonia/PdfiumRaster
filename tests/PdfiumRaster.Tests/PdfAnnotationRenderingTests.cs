@@ -12,7 +12,8 @@ public sealed class PdfAnnotationRenderingTests
         Assert.True(File.Exists(GetTestPdfPath(relativePdfPath)));
     }
 
-    [Theory(Skip = "Local-only annotation PDF is ignored by Git.")]
+    [Theory]
+    [Trait("Category", "Local")]
     [InlineData("TestAssets/annotations.pdf")]
     public void Local_annotations_pdf_is_available_as_test_asset(string relativePdfPath)
     {

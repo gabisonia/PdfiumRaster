@@ -22,14 +22,12 @@
 
   <ItemGroup>
     <None Include="TestAssets\*.pdf" Exclude="TestAssets\annotations.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="TestAssets\annotations.pdf" CopyToOutputDirectory="PreserveNewest" Condition="Exists('TestAssets\annotations.pdf')" />
   </ItemGroup>
 
   <!--
-  Local-only PDF test asset. This file is gitignored.
-  Uncomment locally if you want the asset copied to the test output:
-  <ItemGroup>
-    <None Include="TestAssets\annotations.pdf" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
+  TestAssets\annotations.pdf is local-only and gitignored.
+  Run it with: make test-local
   -->
 
   <ItemGroup>
