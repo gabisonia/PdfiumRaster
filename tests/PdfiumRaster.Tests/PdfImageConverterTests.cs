@@ -80,6 +80,58 @@ public sealed class PdfImageConverterTests
     }
 
     [Fact]
+    public void SavePages_writes_only_selected_pages()
+    {
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "TestOutput", "selected-pages");
+
+        if (Directory.Exists(outputDirectory))
+        {
+            Directory.Delete(outputDirectory, recursive: true);
+        }
+
+        var savedCount = PdfImageConverter.SavePages(
+            GetTestPdfPath("TestAssets/axf-annotation-1.pdf"),
+            [1],
+            outputDirectory,
+            options: new PdfImageConversionOptions
+            {
+                Render = new PdfPageRenderOptions { Dpi = 96 },
+            });
+
+        var images = Directory.GetFiles(outputDirectory, "*.bmp");
+
+        Assert.Equal(1, savedCount);
+        Assert.Single(images);
+        Assert.EndsWith("page-0002.bmp", images[0]);
+    }
+
+    [Fact]
+    public void SavePageNumbers_writes_selected_one_based_page_numbers()
+    {
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "TestOutput", "selected-page-numbers");
+
+        if (Directory.Exists(outputDirectory))
+        {
+            Directory.Delete(outputDirectory, recursive: true);
+        }
+
+        var savedCount = PdfImageConverter.SavePageNumbers(
+            GetTestPdfPath("TestAssets/axf-annotation-1.pdf"),
+            [2],
+            outputDirectory,
+            options: new PdfImageConversionOptions
+            {
+                Render = new PdfPageRenderOptions { Dpi = 96 },
+            });
+
+        var images = Directory.GetFiles(outputDirectory, "*.bmp");
+
+        Assert.Equal(1, savedCount);
+        Assert.Single(images);
+        Assert.EndsWith("page-0002.bmp", images[0]);
+    }
+
+    [Fact]
     public void RenderPageNumber_rejects_zero_page_number()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -119,6 +171,46 @@ public sealed class PdfImageConverterTests
         PdfImageConverter.ApplyColorMode(bitmap, PdfImageColorMode.BlackAndWhite, blackAndWhiteThreshold: 128);
 
         Assert.Equal([0, 0, 0, 255, 255, 255, 255, 255], bitmap.Pixels);
+    }
+
+    [Fact]
+    public void Conversion_black_and_white_thresholds_grayscale_rendered_pixels()
+    {
+        var bitmap = PdfImageConverter.RenderPageNumber(
+            GetTestPdfPath("TestAssets/smoke.pdf"),
+            pageNumber: 1,
+            new PdfImageConversionOptions
+            {
+                ColorMode = PdfImageColorMode.BlackAndWhite,
+                BlackAndWhiteThreshold = 128,
+                Render = new PdfPageRenderOptions { Dpi = 72 },
+            });
+
+        for (var i = 0; i < bitmap.Pixels.Length; i += 4)
+        {
+            Assert.True(bitmap.Pixels[i] is 0 or 255);
+            Assert.Equal(bitmap.Pixels[i], bitmap.Pixels[i + 1]);
+            Assert.Equal(bitmap.Pixels[i], bitmap.Pixels[i + 2]);
+        }
+    }
+
+    [Fact]
+    public void Conversion_grayscale_renders_equal_rgb_channels()
+    {
+        var bitmap = PdfImageConverter.RenderPageNumber(
+            GetTestPdfPath("TestAssets/smoke.pdf"),
+            pageNumber: 1,
+            new PdfImageConversionOptions
+            {
+                ColorMode = PdfImageColorMode.Grayscale,
+                Render = new PdfPageRenderOptions { Dpi = 72 },
+            });
+
+        for (var i = 0; i < bitmap.Pixels.Length; i += 4)
+        {
+            Assert.Equal(bitmap.Pixels[i], bitmap.Pixels[i + 1]);
+            Assert.Equal(bitmap.Pixels[i], bitmap.Pixels[i + 2]);
+        }
     }
 
     private static string GetTestPdfPath(string relativePdfPath)

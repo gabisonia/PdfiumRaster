@@ -81,6 +81,40 @@ public sealed class PdfPage : IDisposable
     }
 
     /// <summary>
+    /// Renders the page into an existing bitmap using render options.
+    /// </summary>
+    /// <param name="bitmap">Destination bitmap whose dimensions must match the configured render size.</param>
+    /// <param name="options">Optional render options.</param>
+    public void Render(PdfBitmap bitmap, PdfPageRenderOptions? options = null)
+    {
+        ThrowIfDisposed();
+        if (bitmap is null)
+        {
+            throw new ArgumentNullException(nameof(bitmap));
+        }
+
+        options ??= new PdfPageRenderOptions();
+        var (width, height) = options.GetPixelSize(Width, Height);
+
+        if (bitmap.Width != width || bitmap.Height != height)
+        {
+            throw new ArgumentException(
+                $"Destination bitmap must be {width}x{height} pixels for the requested render options.",
+                nameof(bitmap));
+        }
+
+        Render(
+            bitmap,
+            0,
+            0,
+            width,
+            height,
+            options.Rotation,
+            options.GetRenderFlags(),
+            options.FillBackground ? options.BackgroundColor : null);
+    }
+
+    /// <summary>
     /// Renders the page into an existing bitmap.
     /// </summary>
     /// <param name="bitmap">Destination bitmap.</param>

@@ -164,7 +164,7 @@ public static class PdfImageConverter
         using var page = document.LoadPage(pageIndex);
 
         var bitmap = page.Render(GetRenderOptions(options));
-        ApplyColorMode(bitmap, options);
+        ApplyConversionColorMode(bitmap, options);
 
         return bitmap;
     }
@@ -190,7 +190,7 @@ public static class PdfImageConverter
         using var page = document.LoadPage(pageIndex);
 
         var bitmap = page.Render(GetRenderOptions(options));
-        ApplyColorMode(bitmap, options);
+        ApplyConversionColorMode(bitmap, options);
 
         return bitmap;
     }
@@ -218,7 +218,7 @@ public static class PdfImageConverter
         using var page = document.LoadPage(pageIndex);
 
         var bitmap = page.Render(GetRenderOptions(options));
-        ApplyColorMode(bitmap, options);
+        ApplyConversionColorMode(bitmap, options);
 
         return bitmap;
     }
@@ -510,37 +510,71 @@ public static class PdfImageConverter
         PdfImageConversionOptions? options = null,
         string? password = null)
     {
-        if (string.IsNullOrWhiteSpace(outputDirectory))
-        {
-            throw new ArgumentException("Output directory cannot be null or whitespace.", nameof(outputDirectory));
-        }
+        using var library = PdfiumLibrary.Initialize();
+        using var document = PdfDocument.Load(pdfPath, password);
 
-        if (string.IsNullOrWhiteSpace(fileNamePrefix))
-        {
-            throw new ArgumentException("File name prefix cannot be null or whitespace.", nameof(fileNamePrefix));
-        }
+        return SaveAllPages(document, outputDirectory, fileNamePrefix, options);
+    }
 
-        Directory.CreateDirectory(outputDirectory);
+    /// <summary>
+    /// Renders selected zero-based pages from a PDF file and saves each page to an image file.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageIndexes">Zero-based page indexes to save.</param>
+    /// <param name="outputDirectory">Directory where rendered images are written.</param>
+    /// <param name="fileNamePrefix">Prefix used for generated image file names.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>The number of pages saved.</returns>
+    public static int SavePages(
+        string pdfPath,
+        IEnumerable<int> pageIndexes,
+        string outputDirectory,
+        string fileNamePrefix = "page",
+        PdfImageConversionOptions? options = null,
+        string? password = null)
+    {
+        if (pageIndexes is null)
+        {
+            throw new ArgumentNullException(nameof(pageIndexes));
+        }
 
         using var library = PdfiumLibrary.Initialize();
         using var document = PdfDocument.Load(pdfPath, password);
 
-        options ??= new PdfImageConversionOptions();
-        var extension = GetExtension(options.Format);
+        return SavePages(document, pageIndexes, outputDirectory, fileNamePrefix, options);
+    }
 
-        var pageCount = document.PageCount;
-
-        for (var pageIndex = 0; pageIndex < pageCount; pageIndex++)
+    /// <summary>
+    /// Renders selected one-based page numbers from a PDF file and saves each page to an image file.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageNumbers">One-based page numbers to save.</param>
+    /// <param name="outputDirectory">Directory where rendered images are written.</param>
+    /// <param name="fileNamePrefix">Prefix used for generated image file names.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    /// <returns>The number of pages saved.</returns>
+    public static int SavePageNumbers(
+        string pdfPath,
+        IEnumerable<int> pageNumbers,
+        string outputDirectory,
+        string fileNamePrefix = "page",
+        PdfImageConversionOptions? options = null,
+        string? password = null)
+    {
+        if (pageNumbers is null)
         {
-            using var page = document.LoadPage(pageIndex);
-            var bitmap = page.Render(GetRenderOptions(options));
-            ApplyColorMode(bitmap, options);
-            var imagePath = Path.Combine(outputDirectory, $"{fileNamePrefix}-{pageIndex + 1:D4}{extension}");
-
-            SaveBitmap(bitmap, imagePath, options.Format);
+            throw new ArgumentNullException(nameof(pageNumbers));
         }
 
-        return pageCount;
+        return SavePages(
+            pdfPath,
+            pageNumbers.Select(ToPageIndex),
+            outputDirectory,
+            fileNamePrefix,
+            options,
+            password);
     }
 
     /// <summary>
@@ -663,6 +697,11 @@ public static class PdfImageConverter
     private static PdfPageRenderOptions GetRenderOptions(PdfImageConversionOptions options)
     {
         var source = options.Render ?? new PdfPageRenderOptions();
+        if (options.ColorMode == PdfImageColorMode.Color)
+        {
+            return source;
+        }
+
         var renderOptions = new PdfPageRenderOptions
         {
             Dpi = source.Dpi,
@@ -688,6 +727,22 @@ public static class PdfImageConverter
     private static void ApplyColorMode(PdfBitmap bitmap, PdfImageConversionOptions options)
     {
         ApplyColorMode(bitmap, options.ColorMode, options.BlackAndWhiteThreshold);
+    }
+
+    private static void ApplyConversionColorMode(PdfBitmap bitmap, PdfImageConversionOptions options)
+    {
+        switch (options.ColorMode)
+        {
+            case PdfImageColorMode.Color:
+            case PdfImageColorMode.Grayscale:
+                return;
+            case PdfImageColorMode.BlackAndWhite:
+                ApplyBlackAndWhiteFromGrayscale(bitmap, options.BlackAndWhiteThreshold);
+                return;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(options.ColorMode), options.ColorMode,
+                    "Image color mode is not supported.");
+        }
     }
 
     private static void ApplyGrayscale(PdfBitmap bitmap)
@@ -719,6 +774,24 @@ public static class PdfImageConverter
                 var offset = rowOffset + x * 4;
                 var gray = GetLuminance(bitmap.Pixels[offset + 2], bitmap.Pixels[offset + 1], bitmap.Pixels[offset]);
                 var value = gray >= threshold ? byte.MaxValue : byte.MinValue;
+
+                bitmap.Pixels[offset] = value;
+                bitmap.Pixels[offset + 1] = value;
+                bitmap.Pixels[offset + 2] = value;
+            }
+        }
+    }
+
+    private static void ApplyBlackAndWhiteFromGrayscale(PdfBitmap bitmap, byte threshold)
+    {
+        for (var y = 0; y < bitmap.Height; y++)
+        {
+            var rowOffset = y * bitmap.Stride;
+
+            for (var x = 0; x < bitmap.Width; x++)
+            {
+                var offset = rowOffset + x * 4;
+                var value = bitmap.Pixels[offset] >= threshold ? byte.MaxValue : byte.MinValue;
 
                 bitmap.Pixels[offset] = value;
                 bitmap.Pixels[offset + 1] = value;
@@ -761,15 +834,98 @@ public static class PdfImageConverter
         PdfImageConversionOptions? options)
     {
         options ??= new PdfImageConversionOptions();
-        var indexes = pageIndexes ?? Enumerable.Range(0, document.PageCount);
+        var renderOptions = GetRenderOptions(options);
 
-        foreach (var pageIndex in indexes.OrderBy(page => page).Distinct())
+        if (pageIndexes is null)
+        {
+            for (var pageIndex = 0; pageIndex < document.PageCount; pageIndex++)
+            {
+                using var page = document.LoadPage(pageIndex);
+                var bitmap = page.Render(renderOptions);
+                ApplyConversionColorMode(bitmap, options);
+
+                yield return bitmap;
+            }
+        }
+        else
+        {
+            foreach (var pageIndex in pageIndexes.OrderBy(page => page).Distinct())
+            {
+                using var page = document.LoadPage(pageIndex);
+                var bitmap = page.Render(renderOptions);
+                ApplyConversionColorMode(bitmap, options);
+
+                yield return bitmap;
+            }
+        }
+    }
+
+    private static int SaveAllPages(
+        PdfDocument document,
+        string outputDirectory,
+        string fileNamePrefix,
+        PdfImageConversionOptions? options)
+    {
+        ValidateOutput(outputDirectory, fileNamePrefix);
+        Directory.CreateDirectory(outputDirectory);
+
+        options ??= new PdfImageConversionOptions();
+        var renderOptions = GetRenderOptions(options);
+        var extension = GetExtension(options.Format);
+        var pageCount = document.PageCount;
+
+        for (var pageIndex = 0; pageIndex < pageCount; pageIndex++)
         {
             using var page = document.LoadPage(pageIndex);
-            var bitmap = page.Render(GetRenderOptions(options));
-            ApplyColorMode(bitmap, options);
+            var bitmap = page.Render(renderOptions);
+            ApplyConversionColorMode(bitmap, options);
+            var imagePath = Path.Combine(outputDirectory, $"{fileNamePrefix}-{pageIndex + 1:D4}{extension}");
 
-            yield return bitmap;
+            SaveBitmap(bitmap, imagePath, options.Format);
+        }
+
+        return pageCount;
+    }
+
+    private static int SavePages(
+        PdfDocument document,
+        IEnumerable<int> pageIndexes,
+        string outputDirectory,
+        string fileNamePrefix,
+        PdfImageConversionOptions? options)
+    {
+        ValidateOutput(outputDirectory, fileNamePrefix);
+        Directory.CreateDirectory(outputDirectory);
+
+        options ??= new PdfImageConversionOptions();
+        var renderOptions = GetRenderOptions(options);
+        var extension = GetExtension(options.Format);
+        var savedCount = 0;
+
+        foreach (var pageIndex in pageIndexes.OrderBy(page => page).Distinct())
+        {
+            using var page = document.LoadPage(pageIndex);
+            var bitmap = page.Render(renderOptions);
+            ApplyConversionColorMode(bitmap, options);
+            var imagePath = Path.Combine(outputDirectory, $"{fileNamePrefix}-{pageIndex + 1:D4}{extension}");
+
+            SaveBitmap(bitmap, imagePath, options.Format);
+            savedCount++;
+        }
+
+        return savedCount;
+    }
+
+    private static void ValidateOutput(string outputDirectory, string fileNamePrefix)
+    {
+        if (string.IsNullOrWhiteSpace(outputDirectory))
+        {
+            throw new ArgumentException("Output directory cannot be null or whitespace.", nameof(outputDirectory));
+        }
+
+        if (string.IsNullOrWhiteSpace(fileNamePrefix))
+        {
+            throw new ArgumentException("File name prefix cannot be null or whitespace.", nameof(fileNamePrefix));
         }
     }
 

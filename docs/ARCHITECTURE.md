@@ -145,6 +145,8 @@ make benchmark
 
 Benchmark guidance and current memory notes are documented in [PERFORMANCE.md](PERFORMANCE.md).
 
+Selected-page exports should use `SavePages` or `SavePageNumbers` so the PDF is opened once and pages are still processed one at a time.
+
 ## Contributor Rules
 
 Keep PDFium calls inside `PdfiumNative`, preserve the shared native lock, and keep callback delegates and unmanaged structures alive for the full native lifetime that PDFium expects.

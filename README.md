@@ -7,6 +7,8 @@
 
 PdfiumRaster is a .NET Standard PDF-to-image library backed by PDFium. It focuses on rendering PDF pages to bitmap images with practical controls for DPI, page number, annotations, rotation, sizing, anti-aliasing, grayscale, and black-and-white output.
 
+"Raster" means the library converts PDF pages into pixel-based images. PDFs can contain vector text, paths, annotations, and embedded images; PdfiumRaster uses PDFium to draw that page content into a bitmap and then writes it as formats such as BMP, PNG, JPEG, or WebP.
+
 ## Features
 
 - Render one page or every page in a document
@@ -74,6 +76,12 @@ Output:
 images/page-0001.bmp
 images/page-0002.bmp
 images/page-0003.bmp
+```
+
+Render selected pages while opening the PDF once:
+
+```csharp
+PdfImageConverter.SavePageNumbers("sample.pdf", new[] { 1, 3 }, "images");
 ```
 
 ## Page Numbers
@@ -211,10 +219,12 @@ Run local-only tests that use ignored assets such as `annotations.pdf`:
 make test-local
 ```
 
-Rendering tests write generated images under the test output directory:
+Rendering tests write generated images under the test output directory. Normal tests use tracked PDFs, while `make test-local` also writes local annotation renders from ignored `annotations.pdf`:
 
 ```text
 tests/PdfiumRaster.Tests/bin/Debug/net10.0/TestOutput/
+tests/PdfiumRaster.Tests/bin/Debug/net10.0/TestOutput/annotations/
+tests/PdfiumRaster.Tests/bin/Debug/net10.0/TestOutput/formats/
 ```
 
 ## Samples

@@ -90,6 +90,51 @@ public sealed class PdfAnnotationRenderingTests
 
     [Theory]
     [InlineData("TestAssets/smoke.pdf")]
+    public void Render_into_existing_bitmap_overwrites_previous_pixels(string relativePdfPath)
+    {
+        if (!IsPdfiumNativeAvailable())
+        {
+            return;
+        }
+
+        var pdfPath = GetTestPdfPath(relativePdfPath);
+
+        using var pdfium = PdfiumLibrary.Initialize();
+        using var document = PdfDocument.Load(pdfPath);
+        using var page = document.LoadPage(0);
+
+        var renderOptions = new PdfPageRenderOptions { Dpi = 96 };
+        var (width, height) = renderOptions.GetPixelSize(page.Width, page.Height);
+        var bitmap = PdfBitmap.Create(width, height);
+        Array.Fill(bitmap.Pixels, (byte)0x7F);
+
+        page.Render(bitmap, renderOptions);
+
+        Assert.Contains(bitmap.Pixels, value => value != 0x7F);
+    }
+
+    [Theory]
+    [InlineData("TestAssets/smoke.pdf")]
+    public void Render_into_existing_bitmap_rejects_wrong_size(string relativePdfPath)
+    {
+        if (!IsPdfiumNativeAvailable())
+        {
+            return;
+        }
+
+        var pdfPath = GetTestPdfPath(relativePdfPath);
+
+        using var pdfium = PdfiumLibrary.Initialize();
+        using var document = PdfDocument.Load(pdfPath);
+        using var page = document.LoadPage(0);
+
+        var bitmap = PdfBitmap.Create(1, 1);
+
+        Assert.Throws<ArgumentException>(() => page.Render(bitmap, new PdfPageRenderOptions { Dpi = 96 }));
+    }
+
+    [Theory]
+    [InlineData("TestAssets/smoke.pdf")]
     [InlineData("TestAssets/axf-annotation-1.pdf")]
     public void Export_all_pdf_pages_to_test_output(string relativePdfPath)
     {

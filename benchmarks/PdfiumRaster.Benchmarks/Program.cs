@@ -43,6 +43,27 @@ public class PdfRenderingBenchmarks
     }
 
     [Benchmark]
+    public int RepeatedSinglePageRender()
+    {
+        var totalPixels = 0;
+
+        for (var i = 0; i < 3; i++)
+        {
+            var bitmap = PdfImageConverter.RenderPageNumber(
+                _pdfPath,
+                pageNumber: 1,
+                new PdfImageConversionOptions
+                {
+                    Render = new PdfPageRenderOptions { Dpi = 144 },
+                });
+
+            totalPixels += bitmap.Width * bitmap.Height;
+        }
+
+        return totalPixels;
+    }
+
+    [Benchmark]
     public byte[] SavePngToStream()
     {
         using var stream = new MemoryStream();
@@ -90,6 +111,79 @@ public class PdfRenderingBenchmarks
                 Format = PdfImageOutputFormat.Bmp,
                 Render = new PdfPageRenderOptions { Dpi = 144 },
             });
+    }
+
+    [Benchmark]
+    public int SaveDocumentAsPng()
+    {
+        var outputDirectory = Path.Combine(_outputDirectory, Guid.NewGuid().ToString("N"));
+
+        return PdfImageConverter.SaveDocument(
+            _pdfPath,
+            outputDirectory,
+            fileNamePrefix: "page",
+            options: new PdfImageConversionOptions
+            {
+                Format = PdfImageOutputFormat.Png,
+                Render = new PdfPageRenderOptions { Dpi = 144 },
+            });
+    }
+
+    [Benchmark]
+    public int SaveDocumentAsJpeg()
+    {
+        var outputDirectory = Path.Combine(_outputDirectory, Guid.NewGuid().ToString("N"));
+
+        return PdfImageConverter.SaveDocument(
+            _pdfPath,
+            outputDirectory,
+            fileNamePrefix: "page",
+            options: new PdfImageConversionOptions
+            {
+                Format = PdfImageOutputFormat.Jpeg,
+                Render = new PdfPageRenderOptions { Dpi = 144 },
+            });
+    }
+
+    [Benchmark]
+    public int SaveSelectedPagesAsPng()
+    {
+        var outputDirectory = Path.Combine(_outputDirectory, Guid.NewGuid().ToString("N"));
+
+        return PdfImageConverter.SavePages(
+            _pdfPath,
+            [0, 1],
+            outputDirectory,
+            fileNamePrefix: "page",
+            options: new PdfImageConversionOptions
+            {
+                Format = PdfImageOutputFormat.Png,
+                Render = new PdfPageRenderOptions { Dpi = 144 },
+            });
+    }
+
+    [Benchmark]
+    public PdfBitmap ApplyColorModeColor()
+    {
+        var pixels = new byte[_colorPixels.Length];
+        Buffer.BlockCopy(_colorPixels, 0, pixels, 0, _colorPixels.Length);
+
+        var bitmap = new PdfBitmap(width: 1200, height: 1600, stride: 1200 * 4, pixels);
+        PdfImageConverter.ApplyColorMode(bitmap, PdfImageColorMode.Color);
+
+        return bitmap;
+    }
+
+    [Benchmark]
+    public PdfBitmap ApplyColorModeGrayscale()
+    {
+        var pixels = new byte[_colorPixels.Length];
+        Buffer.BlockCopy(_colorPixels, 0, pixels, 0, _colorPixels.Length);
+
+        var bitmap = new PdfBitmap(width: 1200, height: 1600, stride: 1200 * 4, pixels);
+        PdfImageConverter.ApplyColorMode(bitmap, PdfImageColorMode.Grayscale);
+
+        return bitmap;
     }
 
     [Benchmark]

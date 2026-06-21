@@ -107,6 +107,13 @@ Save every page:
 int pageCount = PdfImageConverter.SaveDocument("input.pdf", "images", fileNamePrefix: "page");
 ```
 
+Save selected zero-based page indexes or one-based page numbers while opening the PDF once:
+
+```csharp
+PdfImageConverter.SavePages("input.pdf", new[] { 0, 2 }, "images");
+PdfImageConverter.SavePageNumbers("input.pdf", new[] { 1, 3 }, "images");
+```
+
 Generated names use 1-based numbering:
 
 ```text
@@ -202,6 +209,16 @@ page.Render(
     rotate: PdfPageRotation.Normal,
     flags: PdfRenderFlags.Annot | PdfRenderFlags.LcdText,
     backgroundColor: 0xFFFFFFFF);
+```
+
+When rendering the same page size repeatedly, render options can also be used with an existing bitmap:
+
+```csharp
+var options = new PdfPageRenderOptions { Dpi = 144 };
+var (width, height) = options.GetPixelSize(page.Width, page.Height);
+var reusable = PdfBitmap.Create(width, height);
+
+page.Render(reusable, options);
 ```
 
 ## Writing Existing Bitmaps
