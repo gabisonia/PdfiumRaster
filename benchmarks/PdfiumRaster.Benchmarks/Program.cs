@@ -10,6 +10,9 @@ public class PdfRenderingBenchmarks
     private string _pdfPath = string.Empty;
     private string _outputDirectory = string.Empty;
     private byte[] _colorPixels = [];
+    private PdfBitmap _renderIntoBitmap = null!;
+    private PdfBitmap _colorModeBitmap = null!;
+    private PdfImageConversionOptions _dpi144Options = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -19,6 +22,22 @@ public class PdfRenderingBenchmarks
         Directory.CreateDirectory(_outputDirectory);
 
         _colorPixels = CreateColorPixels(width: 1200, height: 1600);
+        _colorModeBitmap = new PdfBitmap(
+            width: 1200,
+            height: 1600,
+            stride: 1200 * 4,
+            pixels: new byte[_colorPixels.Length]);
+
+        _dpi144Options = new PdfImageConversionOptions
+        {
+            Render = new PdfPageRenderOptions { Dpi = 144 },
+        };
+
+        using var pdfium = PdfiumLibrary.Initialize();
+        using var document = PdfDocument.Load(_pdfPath);
+        using var page = document.LoadPage(0);
+        var (width, height) = _dpi144Options.Render.GetPixelSize(page.Width, page.Height);
+        _renderIntoBitmap = PdfBitmap.Create(width, height);
     }
 
     [GlobalCleanup]
@@ -40,6 +59,14 @@ public class PdfRenderingBenchmarks
             {
                 Render = new PdfPageRenderOptions { Dpi = 144 },
             });
+    }
+
+    [Benchmark]
+    public int RenderPageIntoExistingBitmap()
+    {
+        PdfImageConverter.RenderPageInto(_pdfPath, pageIndex: 0, _renderIntoBitmap, _dpi144Options);
+
+        return _renderIntoBitmap.Width * _renderIntoBitmap.Height;
     }
 
     [Benchmark]
@@ -78,6 +105,20 @@ public class PdfRenderingBenchmarks
             });
 
         return stream.ToArray();
+    }
+
+    [Benchmark]
+    public long SavePngToFile()
+    {
+        var outputPath = Path.Combine(_outputDirectory, Guid.NewGuid().ToString("N") + ".png");
+
+        PdfImageConverter.SavePng(
+            _pdfPath,
+            pageNumber: 1,
+            outputPath,
+            _dpi144Options);
+
+        return new FileInfo(outputPath).Length;
     }
 
     [Benchmark]
@@ -187,6 +228,15 @@ public class PdfRenderingBenchmarks
     }
 
     [Benchmark]
+    public byte ApplyColorModeGrayscaleInPlace()
+    {
+        Buffer.BlockCopy(_colorPixels, 0, _colorModeBitmap.Pixels, 0, _colorPixels.Length);
+        PdfImageConverter.ApplyColorMode(_colorModeBitmap, PdfImageColorMode.Grayscale);
+
+        return _colorModeBitmap.Pixels[0];
+    }
+
+    [Benchmark]
     public PdfBitmap ApplyColorModeBlackAndWhite()
     {
         var pixels = new byte[_colorPixels.Length];
@@ -196,6 +246,15 @@ public class PdfRenderingBenchmarks
         PdfImageConverter.ApplyColorMode(bitmap, PdfImageColorMode.BlackAndWhite);
 
         return bitmap;
+    }
+
+    [Benchmark]
+    public byte ApplyColorModeBlackAndWhiteInPlace()
+    {
+        Buffer.BlockCopy(_colorPixels, 0, _colorModeBitmap.Pixels, 0, _colorPixels.Length);
+        PdfImageConverter.ApplyColorMode(_colorModeBitmap, PdfImageColorMode.BlackAndWhite);
+
+        return _colorModeBitmap.Pixels[0];
     }
 
     private static string GetTestPdfPath(string fileName)

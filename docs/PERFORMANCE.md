@@ -41,17 +41,17 @@ BMP output writes rows directly from the existing `PdfBitmap.Pixels` buffer.
 
 `SaveDocument` opens the PDF once, caches the page count, and processes pages one at a time. This avoids retaining rendered bitmaps for the entire document export.
 
-`SavePages` and `SavePageNumbers` save selected pages while opening the PDF once. Prefer these over repeated single-page path APIs when exporting more than one page from the same document.
+`SavePage`, `SavePageNumber`, `SaveDocument`, `SavePages`, and `SavePageNumbers` render through pooled page bitmaps when writing directly to files or streams. Prefer save helpers when the rendered bitmap does not need to be returned to the caller.
 
 Grayscale conversion uses PDFium grayscale rendering and skips a managed post-processing pass. Black-and-white conversion also renders through PDFium grayscale, then applies a threshold pass using the grayscale channel instead of recalculating RGB luminance for every pixel.
 
-`PdfPage.Render(PdfBitmap, PdfPageRenderOptions)` lets advanced callers reuse a destination bitmap when the output dimensions stay stable.
+`PdfPage.Render(PdfBitmap, PdfPageRenderOptions)` and path-based `PdfImageConverter.RenderPageInto` overloads let callers reuse a destination bitmap when the output dimensions stay stable. `PdfBitmapLease` can rent that destination buffer from `ArrayPool<byte>`; dispose the lease as soon as the bitmap is no longer needed, and do not retain its pixel array afterward.
 
 ## Usage Guidance
 
 Prefer file path or seekable stream APIs for large PDFs. Byte array and Base64 APIs keep the entire PDF in managed memory.
 
-Use `SaveDocument` for full-document export instead of repeatedly calling single-page helpers. Repeated single-page helpers reopen the document each time.
+Use `SaveDocument` for full-document export instead of repeatedly calling single-page helpers. Single-page save helpers are optimized for memory, but still reopen the document each time.
 
 Use `SavePages` or `SavePageNumbers` when exporting only part of a document.
 

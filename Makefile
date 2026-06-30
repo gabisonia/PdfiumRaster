@@ -3,7 +3,7 @@ SOLUTION := PdfiumRaster.slnx
 PROJECT := src/PdfiumRaster/PdfiumRaster.csproj
 CONFIGURATION := Release
 ARTIFACTS_DIR := artifacts
-PACKAGE_VERSION := 0.1.0
+PACKAGE_VERSION := 0.2.0
 PACKAGE := $(ARTIFACTS_DIR)/PdfiumRaster.$(PACKAGE_VERSION).nupkg
 
 .PHONY: help restore build test test-local pack inspect-package smoke-package benchmark release-check clean
@@ -70,7 +70,7 @@ smoke-package: $(PACKAGE)
 	dotnet run --configuration Release
 
 benchmark:
-	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts
+	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts --filter '*'
 
 release-check: test pack inspect-package smoke-package
 

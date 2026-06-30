@@ -70,6 +70,13 @@ PdfImageConverter.RenderPageNumber(string pdfPath, int pageNumber);
 PdfImageConverter.RenderPageNumber(byte[] pdfBytes, int pageNumber);
 ```
 
+Render a path-based page into an existing bitmap:
+
+```csharp
+PdfImageConverter.RenderPageInto(string pdfPath, int pageIndex, PdfBitmap destination);
+PdfImageConverter.RenderPageNumberInto(string pdfPath, int pageNumber, PdfBitmap destination);
+```
+
 Render selected zero-based pages:
 
 ```csharp
@@ -214,12 +221,31 @@ page.Render(
 When rendering the same page size repeatedly, render options can also be used with an existing bitmap:
 
 ```csharp
-var options = new PdfPageRenderOptions { Dpi = 144 };
-var (width, height) = options.GetPixelSize(page.Width, page.Height);
+var render = new PdfPageRenderOptions { Dpi = 144 };
+var (width, height) = render.GetPixelSize(page.Width, page.Height);
 var reusable = PdfBitmap.Create(width, height);
 
-page.Render(reusable, options);
+page.Render(reusable, render);
 ```
+
+The converter facade also supports path-based rendering into an existing bitmap:
+
+```csharp
+var options = new PdfImageConversionOptions { Render = render };
+
+PdfImageConverter.RenderPageInto("input.pdf", pageIndex: 0, reusable, options);
+```
+
+For repeated rendering where the bitmap does not need to outlive the render operation, use a pooled bitmap lease:
+
+```csharp
+using var lease = PdfBitmapLease.Rent(width, height);
+
+page.Render(lease.Bitmap, render);
+PdfImageWriter.SavePng(lease.Bitmap, "page.png");
+```
+
+`PdfBitmapLease` returns its pixel buffer to the shared array pool when disposed. Do not retain `lease.Bitmap` or `lease.Bitmap.Pixels` after disposal. The pooled pixel array may be larger than `Stride * Height`; image writers use the bitmap dimensions and stride.
 
 ## Writing Existing Bitmaps
 

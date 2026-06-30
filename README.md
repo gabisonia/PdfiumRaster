@@ -191,6 +191,29 @@ page.Render(
 PdfImageWriter.SavePng(target, "placed-page.png");
 ```
 
+For repeated same-size rendering, rent a pooled bitmap and dispose the lease when finished:
+
+```csharp
+var options = new PdfPageRenderOptions { Dpi = 144 };
+var (width, height) = options.GetPixelSize(page.Width, page.Height);
+
+using var lease = PdfBitmapLease.Rent(width, height);
+page.Render(lease.Bitmap, options);
+
+PdfImageWriter.SavePng(lease.Bitmap, "page.png");
+```
+
+The high-level facade can also render a file path into an existing bitmap:
+
+```csharp
+PdfImageConverter.RenderPageInto("sample.pdf", pageIndex: 0, lease.Bitmap, new PdfImageConversionOptions
+{
+    Render = options,
+});
+```
+
+Do not keep `lease.Bitmap` or `lease.Bitmap.Pixels` after disposing the lease. Save helpers reuse pooled buffers internally where possible.
+
 ## Threading
 
 PDFium is not thread-safe. PdfiumRaster serializes native PDFium calls with a shared lock. Process one PDF at a time inside a process; use multiple processes if you need true parallel PDF rendering.

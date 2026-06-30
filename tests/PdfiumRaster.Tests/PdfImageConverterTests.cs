@@ -213,6 +213,60 @@ public sealed class PdfImageConverterTests
         }
     }
 
+    [Fact]
+    public void RenderPageInto_renders_into_existing_bitmap()
+    {
+        var pdfPath = GetTestPdfPath("TestAssets/smoke.pdf");
+        var options = new PdfImageConversionOptions
+        {
+            Render = new PdfPageRenderOptions { Dpi = 72 },
+        };
+        var pageSize = PdfImageConverter.GetPageSizes(pdfPath)[0];
+        var (width, height) = options.Render.GetPixelSize(pageSize.Width, pageSize.Height);
+        var bitmap = PdfBitmap.Create(width, height);
+
+        PdfImageConverter.RenderPageInto(pdfPath, pageIndex: 0, bitmap, options);
+
+        Assert.Contains(bitmap.Pixels, pixel => pixel != 0);
+    }
+
+    [Fact]
+    public void RenderPageNumberInto_uses_one_based_page_number()
+    {
+        var pdfPath = GetTestPdfPath("TestAssets/axf-annotation-1.pdf");
+        var options = new PdfImageConversionOptions
+        {
+            Render = new PdfPageRenderOptions { Dpi = 72 },
+        };
+        var pageSize = PdfImageConverter.GetPageSizes(pdfPath)[1];
+        var (width, height) = options.Render.GetPixelSize(pageSize.Width, pageSize.Height);
+        var bitmap = PdfBitmap.Create(width, height);
+
+        PdfImageConverter.RenderPageNumberInto(pdfPath, pageNumber: 2, bitmap, options);
+
+        Assert.Contains(bitmap.Pixels, pixel => pixel != 0);
+    }
+
+    [Fact]
+    public void RenderPageInto_rejects_null_destination()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            PdfImageConverter.RenderPageInto(GetTestPdfPath("TestAssets/smoke.pdf"), 0, null!));
+    }
+
+    [Fact]
+    public void RenderPageInto_rejects_mismatched_destination_size()
+    {
+        var bitmap = PdfBitmap.Create(width: 1, height: 1);
+
+        Assert.Throws<ArgumentException>(() =>
+            PdfImageConverter.RenderPageInto(GetTestPdfPath("TestAssets/smoke.pdf"), 0, bitmap,
+                new PdfImageConversionOptions
+                {
+                    Render = new PdfPageRenderOptions { Dpi = 72 },
+                }));
+    }
+
     private static string GetTestPdfPath(string relativePdfPath)
     {
         return Path.Combine(AppContext.BaseDirectory, relativePdfPath);

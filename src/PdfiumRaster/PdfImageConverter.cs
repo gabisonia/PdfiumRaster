@@ -224,6 +224,35 @@ public static class PdfImageConverter
     }
 
     /// <summary>
+    /// Renders a zero-based page from a PDF file into an existing bitmap.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <param name="destination">Destination bitmap whose dimensions must match the configured render size in pixels.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    public static void RenderPageInto(
+        string pdfPath,
+        int pageIndex,
+        PdfBitmap destination,
+        PdfImageConversionOptions? options = null,
+        string? password = null)
+    {
+        if (destination is null)
+        {
+            throw new ArgumentNullException(nameof(destination));
+        }
+
+        options ??= new PdfImageConversionOptions();
+
+        using var library = PdfiumLibrary.Initialize();
+        using var document = PdfDocument.Load(pdfPath, password);
+        using var page = document.LoadPage(pageIndex);
+
+        RenderPageInto(page, destination, options);
+    }
+
+    /// <summary>
     /// Renders a zero-based page from a Base64-encoded PDF.
     /// </summary>
     /// <param name="pdfBase64">Base64-encoded PDF file data.</param>
@@ -260,6 +289,24 @@ public static class PdfImageConverter
         string? password = null)
     {
         return RenderPage(pdfPath, ToPageIndex(pageNumber), options, password);
+    }
+
+    /// <summary>
+    /// Renders a one-based page number from a PDF file into an existing bitmap.
+    /// </summary>
+    /// <param name="pdfPath">Path to the PDF file.</param>
+    /// <param name="pageNumber">One-based page number.</param>
+    /// <param name="destination">Destination bitmap whose dimensions must match the configured render size in pixels.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <param name="password">Optional document password.</param>
+    public static void RenderPageNumberInto(
+        string pdfPath,
+        int pageNumber,
+        PdfBitmap destination,
+        PdfImageConversionOptions? options = null,
+        string? password = null)
+    {
+        RenderPageInto(pdfPath, ToPageIndex(pageNumber), destination, options, password);
     }
 
     /// <summary>
@@ -300,9 +347,7 @@ public static class PdfImageConverter
         }
 
         options ??= new PdfImageConversionOptions();
-        var bitmap = RenderPage(pdfPath, pageIndex, options, password);
-
-        SaveBitmap(bitmap, imagePath, options.Format);
+        SavePageDirect(pdfPath, pageIndex, imagePath, options, password);
     }
 
     /// <summary>
@@ -326,9 +371,7 @@ public static class PdfImageConverter
         }
 
         options ??= new PdfImageConversionOptions();
-        var bitmap = RenderPage(pdfPath, pageIndex, options, password);
-
-        SaveBitmap(bitmap, imageStream, options.Format);
+        SavePageDirect(pdfPath, pageIndex, imageStream, options, password);
     }
 
     /// <summary>
@@ -747,6 +790,8 @@ public static class PdfImageConverter
 
     private static void ApplyGrayscale(PdfBitmap bitmap)
     {
+        var pixels = bitmap.Pixels;
+
         for (var y = 0; y < bitmap.Height; y++)
         {
             var rowOffset = y * bitmap.Stride;
@@ -754,17 +799,19 @@ public static class PdfImageConverter
             for (var x = 0; x < bitmap.Width; x++)
             {
                 var offset = rowOffset + x * 4;
-                var gray = GetLuminance(bitmap.Pixels[offset + 2], bitmap.Pixels[offset + 1], bitmap.Pixels[offset]);
+                var gray = GetLuminance(pixels[offset + 2], pixels[offset + 1], pixels[offset]);
 
-                bitmap.Pixels[offset] = gray;
-                bitmap.Pixels[offset + 1] = gray;
-                bitmap.Pixels[offset + 2] = gray;
+                pixels[offset] = gray;
+                pixels[offset + 1] = gray;
+                pixels[offset + 2] = gray;
             }
         }
     }
 
     private static void ApplyBlackAndWhite(PdfBitmap bitmap, byte threshold)
     {
+        var pixels = bitmap.Pixels;
+
         for (var y = 0; y < bitmap.Height; y++)
         {
             var rowOffset = y * bitmap.Stride;
@@ -772,18 +819,20 @@ public static class PdfImageConverter
             for (var x = 0; x < bitmap.Width; x++)
             {
                 var offset = rowOffset + x * 4;
-                var gray = GetLuminance(bitmap.Pixels[offset + 2], bitmap.Pixels[offset + 1], bitmap.Pixels[offset]);
+                var gray = GetLuminance(pixels[offset + 2], pixels[offset + 1], pixels[offset]);
                 var value = gray >= threshold ? byte.MaxValue : byte.MinValue;
 
-                bitmap.Pixels[offset] = value;
-                bitmap.Pixels[offset + 1] = value;
-                bitmap.Pixels[offset + 2] = value;
+                pixels[offset] = value;
+                pixels[offset + 1] = value;
+                pixels[offset + 2] = value;
             }
         }
     }
 
     private static void ApplyBlackAndWhiteFromGrayscale(PdfBitmap bitmap, byte threshold)
     {
+        var pixels = bitmap.Pixels;
+
         for (var y = 0; y < bitmap.Height; y++)
         {
             var rowOffset = y * bitmap.Stride;
@@ -791,11 +840,11 @@ public static class PdfImageConverter
             for (var x = 0; x < bitmap.Width; x++)
             {
                 var offset = rowOffset + x * 4;
-                var value = bitmap.Pixels[offset] >= threshold ? byte.MaxValue : byte.MinValue;
+                var value = pixels[offset] >= threshold ? byte.MaxValue : byte.MinValue;
 
-                bitmap.Pixels[offset] = value;
-                bitmap.Pixels[offset + 1] = value;
-                bitmap.Pixels[offset + 2] = value;
+                pixels[offset] = value;
+                pixels[offset + 1] = value;
+                pixels[offset + 2] = value;
             }
         }
     }
@@ -826,6 +875,49 @@ public static class PdfImageConverter
         }
 
         return sizes;
+    }
+
+    private static void RenderPageInto(PdfPage page, PdfBitmap destination, PdfImageConversionOptions options)
+    {
+        var renderOptions = GetRenderOptions(options);
+        page.Render(destination, renderOptions);
+        ApplyConversionColorMode(destination, options);
+    }
+
+    private static void SavePageDirect(
+        string pdfPath,
+        int pageIndex,
+        string imagePath,
+        PdfImageConversionOptions options,
+        string? password)
+    {
+        using var library = PdfiumLibrary.Initialize();
+        using var document = PdfDocument.Load(pdfPath, password);
+        using var page = document.LoadPage(pageIndex);
+
+        var renderOptions = GetRenderOptions(options);
+        using var bitmapLease = RentBitmapLease(page, renderOptions);
+        var bitmap = RenderToLease(page, bitmapLease, renderOptions, options);
+
+        SaveBitmap(bitmap, imagePath, options.Format);
+    }
+
+    private static void SavePageDirect(
+        string pdfPath,
+        int pageIndex,
+        Stream imageStream,
+        PdfImageConversionOptions options,
+        string? password)
+    {
+        using var library = PdfiumLibrary.Initialize();
+        using var document = PdfDocument.Load(pdfPath, password);
+        using var page = document.LoadPage(pageIndex);
+
+        var renderOptions = GetRenderOptions(options);
+        using var bitmapLease = RentBitmapLease(page, renderOptions);
+        var bitmap = RenderToLease(page, bitmapLease, renderOptions, options);
+
+        SaveBitmap(bitmap, imageStream, options.Format);
     }
 
     private static IEnumerable<PdfBitmap> RenderPages(
@@ -873,15 +965,23 @@ public static class PdfImageConverter
         var renderOptions = GetRenderOptions(options);
         var extension = GetExtension(options.Format);
         var pageCount = document.PageCount;
+        PdfBitmapLease? bitmapLease = null;
 
-        for (var pageIndex = 0; pageIndex < pageCount; pageIndex++)
+        try
         {
-            using var page = document.LoadPage(pageIndex);
-            var bitmap = page.Render(renderOptions);
-            ApplyConversionColorMode(bitmap, options);
-            var imagePath = Path.Combine(outputDirectory, $"{fileNamePrefix}-{pageIndex + 1:D4}{extension}");
+            for (var pageIndex = 0; pageIndex < pageCount; pageIndex++)
+            {
+                using var page = document.LoadPage(pageIndex);
+                bitmapLease = EnsureBitmapLease(bitmapLease, page, renderOptions);
+                var bitmap = RenderToLease(page, bitmapLease, renderOptions, options);
+                var imagePath = Path.Combine(outputDirectory, $"{fileNamePrefix}-{pageIndex + 1:D4}{extension}");
 
-            SaveBitmap(bitmap, imagePath, options.Format);
+                SaveBitmap(bitmap, imagePath, options.Format);
+            }
+        }
+        finally
+        {
+            bitmapLease?.Dispose();
         }
 
         return pageCount;
@@ -901,19 +1001,84 @@ public static class PdfImageConverter
         var renderOptions = GetRenderOptions(options);
         var extension = GetExtension(options.Format);
         var savedCount = 0;
+        PdfBitmapLease? bitmapLease = null;
 
-        foreach (var pageIndex in pageIndexes.OrderBy(page => page).Distinct())
+        try
         {
-            using var page = document.LoadPage(pageIndex);
-            var bitmap = page.Render(renderOptions);
-            ApplyConversionColorMode(bitmap, options);
-            var imagePath = Path.Combine(outputDirectory, $"{fileNamePrefix}-{pageIndex + 1:D4}{extension}");
+            foreach (var pageIndex in pageIndexes.OrderBy(page => page).Distinct())
+            {
+                using var page = document.LoadPage(pageIndex);
+                bitmapLease = EnsureBitmapLease(bitmapLease, page, renderOptions);
+                var bitmap = RenderToLease(page, bitmapLease, renderOptions, options);
+                var imagePath = Path.Combine(outputDirectory, $"{fileNamePrefix}-{pageIndex + 1:D4}{extension}");
 
-            SaveBitmap(bitmap, imagePath, options.Format);
-            savedCount++;
+                SaveBitmap(bitmap, imagePath, options.Format);
+                savedCount++;
+            }
+        }
+        finally
+        {
+            bitmapLease?.Dispose();
         }
 
         return savedCount;
+    }
+
+    private static PdfBitmapLease EnsureBitmapLease(
+        PdfBitmapLease? bitmapLease,
+        PdfPage page,
+        PdfPageRenderOptions renderOptions)
+    {
+        var (width, height) = renderOptions.GetPixelSize(page.Width, page.Height);
+        if (bitmapLease is not null)
+        {
+            var bitmap = bitmapLease.Bitmap;
+            if (bitmap.Width == width && bitmap.Height == height)
+            {
+                return bitmapLease;
+            }
+
+            bitmapLease.Dispose();
+        }
+
+        return PdfBitmapLease.Rent(width, height, clear: false);
+    }
+
+    private static PdfBitmapLease RentBitmapLease(PdfPage page, PdfPageRenderOptions renderOptions)
+    {
+        var (width, height) = renderOptions.GetPixelSize(page.Width, page.Height);
+        return PdfBitmapLease.Rent(width, height, clear: false);
+    }
+
+    private static PdfBitmap RenderToLease(
+        PdfPage page,
+        PdfBitmapLease bitmapLease,
+        PdfPageRenderOptions renderOptions,
+        PdfImageConversionOptions options)
+    {
+        var bitmap = bitmapLease.Bitmap;
+        if (!renderOptions.FillBackground)
+        {
+            ClearPixelRegion(bitmap);
+        }
+
+        page.Render(
+            bitmap,
+            0,
+            0,
+            bitmap.Width,
+            bitmap.Height,
+            renderOptions.Rotation,
+            renderOptions.GetRenderFlags(),
+            renderOptions.FillBackground ? renderOptions.BackgroundColor : null);
+        ApplyConversionColorMode(bitmap, options);
+
+        return bitmap;
+    }
+
+    private static void ClearPixelRegion(PdfBitmap bitmap)
+    {
+        Array.Clear(bitmap.Pixels, 0, checked(bitmap.Stride * bitmap.Height));
     }
 
     private static void ValidateOutput(string outputDirectory, string fileNamePrefix)
