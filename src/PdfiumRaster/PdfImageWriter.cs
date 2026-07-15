@@ -40,7 +40,18 @@ public static class PdfImageWriter
     /// <param name="path">Destination file path.</param>
     public static void SavePng(PdfBitmap bitmap, string path)
     {
-        SaveEncoded(bitmap, path, SKEncodedImageFormat.Png);
+        SavePng(bitmap, path, new PdfImageEncodingOptions());
+    }
+
+    /// <summary>
+    /// Saves a bitmap as a PNG file.
+    /// </summary>
+    /// <param name="bitmap">Bitmap to save.</param>
+    /// <param name="path">Destination file path.</param>
+    /// <param name="options">PNG encoding settings.</param>
+    public static void SavePng(PdfBitmap bitmap, string path, PdfImageEncodingOptions options)
+    {
+        SaveEncoded(bitmap, path, SKEncodedImageFormat.Png, options);
     }
 
     /// <summary>
@@ -51,7 +62,18 @@ public static class PdfImageWriter
     /// <param name="quality">Encoder quality from 0 to 100.</param>
     public static void SaveJpeg(PdfBitmap bitmap, string path, int quality = 100)
     {
-        SaveEncoded(bitmap, path, SKEncodedImageFormat.Jpeg, quality);
+        SaveJpeg(bitmap, path, new PdfImageEncodingOptions { Quality = quality });
+    }
+
+    /// <summary>
+    /// Saves a bitmap as a JPEG file.
+    /// </summary>
+    /// <param name="bitmap">Bitmap to save.</param>
+    /// <param name="path">Destination file path.</param>
+    /// <param name="options">JPEG encoding settings.</param>
+    public static void SaveJpeg(PdfBitmap bitmap, string path, PdfImageEncodingOptions options)
+    {
+        SaveEncoded(bitmap, path, SKEncodedImageFormat.Jpeg, options);
     }
 
     /// <summary>
@@ -62,7 +84,18 @@ public static class PdfImageWriter
     /// <param name="quality">Encoder quality from 0 to 100.</param>
     public static void SaveWebp(PdfBitmap bitmap, string path, int quality = 100)
     {
-        SaveEncoded(bitmap, path, SKEncodedImageFormat.Webp, quality);
+        SaveWebp(bitmap, path, new PdfImageEncodingOptions { Quality = quality });
+    }
+
+    /// <summary>
+    /// Saves a bitmap as a WebP file.
+    /// </summary>
+    /// <param name="bitmap">Bitmap to save.</param>
+    /// <param name="path">Destination file path.</param>
+    /// <param name="options">WebP encoding settings.</param>
+    public static void SaveWebp(PdfBitmap bitmap, string path, PdfImageEncodingOptions options)
+    {
+        SaveEncoded(bitmap, path, SKEncodedImageFormat.Webp, options);
     }
 
     /// <summary>
@@ -72,7 +105,18 @@ public static class PdfImageWriter
     /// <param name="stream">Destination stream.</param>
     public static void WritePng(PdfBitmap bitmap, Stream stream)
     {
-        WriteEncoded(bitmap, stream, SKEncodedImageFormat.Png);
+        WritePng(bitmap, stream, new PdfImageEncodingOptions());
+    }
+
+    /// <summary>
+    /// Writes a bitmap as PNG to a stream without closing the stream.
+    /// </summary>
+    /// <param name="bitmap">Bitmap to write.</param>
+    /// <param name="stream">Destination stream, which remains open.</param>
+    /// <param name="options">PNG encoding settings.</param>
+    public static void WritePng(PdfBitmap bitmap, Stream stream, PdfImageEncodingOptions options)
+    {
+        WriteEncoded(bitmap, stream, SKEncodedImageFormat.Png, options);
     }
 
     /// <summary>
@@ -83,7 +127,18 @@ public static class PdfImageWriter
     /// <param name="quality">Encoder quality from 0 to 100.</param>
     public static void WriteJpeg(PdfBitmap bitmap, Stream stream, int quality = 100)
     {
-        WriteEncoded(bitmap, stream, SKEncodedImageFormat.Jpeg, quality);
+        WriteJpeg(bitmap, stream, new PdfImageEncodingOptions { Quality = quality });
+    }
+
+    /// <summary>
+    /// Writes a bitmap as JPEG to a stream without closing the stream.
+    /// </summary>
+    /// <param name="bitmap">Bitmap to write.</param>
+    /// <param name="stream">Destination stream, which remains open.</param>
+    /// <param name="options">JPEG encoding settings.</param>
+    public static void WriteJpeg(PdfBitmap bitmap, Stream stream, PdfImageEncodingOptions options)
+    {
+        WriteEncoded(bitmap, stream, SKEncodedImageFormat.Jpeg, options);
     }
 
     /// <summary>
@@ -94,7 +149,18 @@ public static class PdfImageWriter
     /// <param name="quality">Encoder quality from 0 to 100.</param>
     public static void WriteWebp(PdfBitmap bitmap, Stream stream, int quality = 100)
     {
-        WriteEncoded(bitmap, stream, SKEncodedImageFormat.Webp, quality);
+        WriteWebp(bitmap, stream, new PdfImageEncodingOptions { Quality = quality });
+    }
+
+    /// <summary>
+    /// Writes a bitmap as WebP to a stream without closing the stream.
+    /// </summary>
+    /// <param name="bitmap">Bitmap to write.</param>
+    /// <param name="stream">Destination stream, which remains open.</param>
+    /// <param name="options">WebP encoding settings.</param>
+    public static void WriteWebp(PdfBitmap bitmap, Stream stream, PdfImageEncodingOptions options)
+    {
+        WriteEncoded(bitmap, stream, SKEncodedImageFormat.Webp, options);
     }
 
     /// <summary>
@@ -153,7 +219,11 @@ public static class PdfImageWriter
         buffer[offset + 1] = (byte)(value >> 8);
     }
 
-    private static void SaveEncoded(PdfBitmap bitmap, string path, SKEncodedImageFormat format, int quality = 100)
+    private static void SaveEncoded(
+        PdfBitmap bitmap,
+        string path,
+        SKEncodedImageFormat format,
+        PdfImageEncodingOptions options)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -161,10 +231,14 @@ public static class PdfImageWriter
         }
 
         using var stream = File.Create(path);
-        WriteEncoded(bitmap, stream, format, quality);
+        WriteEncoded(bitmap, stream, format, options);
     }
 
-    private static void WriteEncoded(PdfBitmap bitmap, Stream stream, SKEncodedImageFormat format, int quality = 100)
+    private static void WriteEncoded(
+        PdfBitmap bitmap,
+        Stream stream,
+        SKEncodedImageFormat format,
+        PdfImageEncodingOptions options)
     {
         if (bitmap is null)
         {
@@ -176,22 +250,43 @@ public static class PdfImageWriter
             throw new ArgumentNullException(nameof(stream));
         }
 
+        if (options is null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
+
         var pinnedPixels = GCHandle.Alloc(bitmap.Pixels, GCHandleType.Pinned);
 
         try
         {
             var imageInfo = new SKImageInfo(bitmap.Width, bitmap.Height, SKColorType.Bgra8888, SKAlphaType.Unpremul);
             using var pixmap = new SKPixmap(imageInfo, pinnedPixels.AddrOfPinnedObject(), bitmap.Stride);
-            using var image = SKImage.FromPixels(pixmap)
-                              ?? throw new InvalidOperationException("Could not create encoded image from bitmap pixels.");
-            using var data = image.Encode(format, quality)
-                             ?? throw new InvalidOperationException("Could not encode bitmap image.");
+            var encoded = format switch
+            {
+                SKEncodedImageFormat.Png => EncodePng(pixmap, stream, options),
+                SKEncodedImageFormat.Jpeg => pixmap.Encode(stream, new SKJpegEncoderOptions(options.Quality)),
+                SKEncodedImageFormat.Webp => pixmap.Encode(stream,
+                    new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, options.Quality)),
+                _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Image format is not supported."),
+            };
 
-            data.SaveTo(stream);
+            if (!encoded)
+            {
+                throw new InvalidOperationException("Could not encode bitmap image.");
+            }
         }
         finally
         {
             pinnedPixels.Free();
         }
+    }
+
+    private static bool EncodePng(SKPixmap pixmap, Stream stream, PdfImageEncodingOptions options)
+    {
+        var pngOptions = options.PngCompressionLevel.HasValue
+            ? new SKPngEncoderOptions(SKPngEncoderFilterFlags.AllFilters, options.PngCompressionLevel.Value)
+            : SKPngEncoderOptions.Default;
+
+        return pixmap.Encode(stream, pngOptions);
     }
 }

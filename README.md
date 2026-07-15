@@ -19,13 +19,23 @@ PdfiumRaster is a .NET Standard PDF-to-image library backed by PDFium. It focuse
 - Render annotations
 - Render grayscale or thresholded black-and-white images
 - Configure DPI, width, height, aspect ratio, rotation, background color, and anti-aliasing
+- Reuse an open document, loaded page, and render buffer with `PdfRenderSession`
+- Select explicit screen-preview and fast-encoding presets without changing quality-oriented defaults
 - Native PDFium binaries delivered through NuGet runtime assets
 
-## Install Model
+## Installation
 
-The library targets `netstandard2.0`.
+Install the package from NuGet:
 
-Native PDFium binaries are delivered through the same NuGet asset pattern used by PDFtoImage:
+```bash
+dotnet add package PdfiumRaster
+```
+
+The library targets `netstandard2.0` and is intended for desktop and server applications on Windows, Linux, and
+macOS. The consuming application must run on a platform and architecture covered by the PDFium and SkiaSharp runtime
+assets restored by NuGet.
+
+Native PDFium binaries are delivered through platform-specific NuGet runtime packages:
 
 ```xml
 bblanchon.PDFium.Linux
@@ -84,6 +94,34 @@ Render selected pages while opening the PDF once:
 PdfImageConverter.SavePageNumbers("sample.pdf", new[] { 1, 3 }, "images");
 ```
 
+For repeated latency-sensitive rendering or batch encoding, use a session. It keeps the document open and reuses the
+loaded page and render buffer when possible:
+
+```csharp
+using var session = PdfRenderSession.Open("sample.pdf");
+var options = new PdfImageConversionOptions
+{
+    Render = PdfPageRenderOptions.ScreenPreview,
+    Format = PdfImageOutputFormat.Png,
+    Encoding = PdfImageEncodingOptions.Fast,
+};
+
+for (var pageIndex = 0; pageIndex < session.PageCount; pageIndex++)
+{
+    session.SavePage(pageIndex, $"page-{pageIndex + 1:D4}.png", options);
+}
+```
+
+For synchronous in-memory processing with no output bitmap allocation, use the session callback overload. The bitmap
+is session-owned and must not be retained after the callback returns:
+
+```csharp
+byte firstBlue = session.RenderPage(
+    pageIndex: 0,
+    callback: bitmap => bitmap.Pixels[0],
+    options: options);
+```
+
 ## Page Numbers
 
 `SavePage` and `RenderPage` use zero-based page indexes. `SavePageNumber` and `RenderPageNumber` use human-friendly 1-based page numbers.
@@ -105,6 +143,20 @@ PdfImageConverter.SavePng("sample.pdf", 1, "page.png");
 PdfImageConverter.SaveJpeg("sample.pdf", 1, "page.jpg");
 PdfImageConverter.SaveWebp("sample.pdf", 1, "page.webp");
 ```
+
+PNG defaults to Skia's compression setting, while JPEG and WebP default to quality 100. To favor throughput, select
+encoding settings explicitly:
+
+```csharp
+var options = new PdfImageConversionOptions
+{
+    Format = PdfImageOutputFormat.Png,
+    Encoding = PdfImageEncodingOptions.Fast, // PNG level 1; JPEG/WebP quality 85
+};
+```
+
+The fast preset prioritizes encoding speed. PNG level 1 can produce larger files than higher compression levels;
+JPEG and WebP quality 85 normally reduce output size at the cost of lossy compression.
 
 ## Render Options
 
@@ -148,13 +200,24 @@ var bytes = File.ReadAllBytes("sample.pdf");
 var bitmap = PdfImageConverter.RenderPageNumber(bytes, pageNumber: 1);
 
 using var stream = File.OpenRead("sample.pdf");
-var fromStream = PdfImageConverter.RenderPage(stream, pageIndex: 0);
+var fromStream = PdfImageConverter.RenderPage(stream, pageIndex: 0, leaveOpen: true);
 
 var base64 = Convert.ToBase64String(bytes);
 var fromBase64 = PdfImageConverter.RenderPageFromBase64(base64, pageIndex: 0);
 ```
 
-For large PDFs, prefer a file path or a seekable stream such as `FileStream`. Seekable streams are passed to PDFium through random-access callbacks and are not copied into one managed byte array. Byte arrays and Base64 strings necessarily keep the full PDF in memory. Non-seekable streams are buffered into memory before loading because PDFium needs random access.
+For large PDFs, prefer a file path or a seekable stream such as `FileStream`. Seekable streams are passed to PDFium
+through random-access callbacks and are not copied into one managed byte array. Byte arrays and Base64 strings
+necessarily keep the full PDF in memory. Non-seekable streams are buffered into memory before loading because PDFium
+needs random access. Input stream overloads dispose the stream by default; pass `leaveOpen: true` when the caller owns
+the stream.
+
+## Production Safety
+
+Treat PDFs as untrusted native-parser input. Keep PdfiumRaster and its PDFium runtime packages current, and enforce
+application-level limits for input bytes, page count, render DPI or dimensions, total output pixels, and request time.
+Do not pass unbounded user-controlled DPI, width, height, or scale values directly to rendering APIs. For stronger
+fault and resource isolation, render untrusted documents in a separately supervised process.
 
 ## Page Metadata
 
@@ -167,7 +230,7 @@ var pageSizes = PdfImageConverter.GetPageSizes("sample.pdf");
 
 ## Manual Rendering
 
-Use the lower-level API when you need placement control similar to Patagames-style rendering.
+Use the lower-level API when you need explicit document/page lifetimes or placement inside a destination bitmap.
 
 ```csharp
 using PdfiumRaster;
@@ -228,12 +291,15 @@ for (var pageIndex = 0; pageIndex < document.PageCount; pageIndex++)
 }
 ```
 
-Rendering time and memory grow with pixel count. The default is 300 DPI for high-resolution output; use 72 or 96 DPI
-for thumbnails and screen previews when that resolution is sufficient.
+Rendering time and memory grow with pixel count. The default is 300 DPI for high-resolution output; use
+`PdfPageRenderOptions.ScreenPreview` for a fresh 96 DPI preset when that resolution is sufficient.
 
 ## Threading
 
-PDFium is not thread-safe. PdfiumRaster serializes native PDFium calls with a shared lock. Process one PDF at a time inside a process; use multiple processes if you need true parallel PDF rendering.
+PDFium is not thread-safe. PdfiumRaster serializes native PDFium calls with a process-wide shared lock, so concurrent
+render requests in one process do not execute inside PDFium in parallel. A `PdfRenderSession` also permits only one
+operation at a time and rejects concurrent or reentrant use. Use separate processes when true parallel PDF rendering
+is required.
 
 ## Repository Layout
 

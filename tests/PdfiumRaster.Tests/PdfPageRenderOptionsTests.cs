@@ -5,6 +5,17 @@ namespace PdfiumRaster.Tests;
 public sealed class PdfPageRenderOptionsTests
 {
     [Fact]
+    public void ScreenPreview_returns_independent_96_dpi_options()
+    {
+        var first = PdfPageRenderOptions.ScreenPreview;
+        var second = PdfPageRenderOptions.ScreenPreview;
+
+        Assert.NotSame(first, second);
+        Assert.Equal(96, first.Dpi);
+        Assert.Equal(PdfRenderFlags.Annot | PdfRenderFlags.LcdText, first.Flags);
+    }
+
+    [Fact]
     public void GetPixelSize_converts_points_to_pixels_using_dpi()
     {
         var options = new PdfPageRenderOptions

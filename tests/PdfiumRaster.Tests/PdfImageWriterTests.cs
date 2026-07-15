@@ -5,6 +5,46 @@ namespace PdfiumRaster.Tests;
 public sealed class PdfImageWriterTests
 {
     [Fact]
+    public void WritePng_with_encoding_options_writes_signature_and_leaves_stream_open()
+    {
+        var bitmap = CreateBitmap();
+        using var stream = new MemoryStream();
+
+        PdfImageWriter.WritePng(bitmap, stream, new PdfImageEncodingOptions { PngCompressionLevel = 1 });
+
+        stream.WriteByte(0);
+        var bytes = stream.ToArray();
+        Assert.Equal(0x89, bytes[0]);
+        Assert.Equal((byte)'P', bytes[1]);
+        Assert.Equal((byte)'N', bytes[2]);
+        Assert.Equal((byte)'G', bytes[3]);
+    }
+
+    [Fact]
+    public void WriteJpeg_with_encoding_options_writes_signature()
+    {
+        using var stream = new MemoryStream();
+
+        PdfImageWriter.WriteJpeg(CreateBitmap(), stream, new PdfImageEncodingOptions { Quality = 85 });
+
+        var bytes = stream.ToArray();
+        Assert.Equal(0xFF, bytes[0]);
+        Assert.Equal(0xD8, bytes[1]);
+    }
+
+    [Fact]
+    public void WriteWebp_with_encoding_options_writes_signature()
+    {
+        using var stream = new MemoryStream();
+
+        PdfImageWriter.WriteWebp(CreateBitmap(), stream, new PdfImageEncodingOptions { Quality = 85 });
+
+        var bytes = stream.ToArray();
+        Assert.Equal("RIFF", System.Text.Encoding.ASCII.GetString(bytes, 0, 4));
+        Assert.Equal("WEBP", System.Text.Encoding.ASCII.GetString(bytes, 8, 4));
+    }
+
+    [Fact]
     public void WriteBmp_writes_top_down_32bpp_bmp()
     {
         var bitmap = new PdfBitmap(
@@ -46,5 +86,14 @@ public sealed class PdfImageWriterTests
     private static ushort ReadUInt16(byte[] bytes, int offset)
     {
         return (ushort)(bytes[offset] | (bytes[offset + 1] << 8));
+    }
+
+    private static PdfBitmap CreateBitmap()
+    {
+        return new PdfBitmap(
+            width: 2,
+            height: 1,
+            stride: 8,
+            pixels: [0x10, 0x20, 0x30, 0xFF, 0x40, 0x50, 0x60, 0xFF]);
     }
 }

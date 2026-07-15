@@ -6,7 +6,7 @@ ARTIFACTS_DIR := artifacts
 PACKAGE_VERSION := 0.2.0
 PACKAGE := $(ARTIFACTS_DIR)/PdfiumRaster.$(PACKAGE_VERSION).nupkg
 
-.PHONY: help restore build test test-local pack inspect-package smoke-package benchmark benchmark-compare release-check clean
+.PHONY: help restore build test test-local pack inspect-package smoke-package benchmark benchmark-compare benchmark-session benchmark-encoding release-check clean
 
 help:
 	@printf '%s\n' \
@@ -20,6 +20,8 @@ help:
 		'  make smoke-package    Install the local package in a fresh app and render a page' \
 		'  make benchmark        Run BenchmarkDotNet performance benchmarks' \
 		'  make benchmark-compare Compare PdfiumRaster with PDFiumCore' \
+		'  make benchmark-session Compare legacy and reusable session rendering' \
+		'  make benchmark-encoding Compare PNG compression levels' \
 		'  make release-check    Run tests, pack, inspect, and package smoke test' \
 		'  make clean            Remove build and package outputs'
 
@@ -75,6 +77,12 @@ benchmark:
 
 benchmark-compare:
 	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts --filter '*PdfiumCoreComparisonBenchmarks*'
+
+benchmark-session:
+	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts --filter '*PdfRenderSessionBenchmarks*'
+
+benchmark-encoding:
+	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts --filter '*PngEncodingBenchmarks*'
 
 release-check: test pack inspect-package smoke-package
 

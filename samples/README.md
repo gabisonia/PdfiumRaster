@@ -85,12 +85,26 @@ PdfImageConverter.SaveJpeg("input.pdf", pageNumber: 1, "page-0001.jpg");
 PdfImageConverter.SaveWebp("input.pdf", pageNumber: 1, "page-0001.webp");
 ```
 
+For faster encoding, opt into the speed preset. PNG compression level 1 may produce a larger file; JPEG and WebP
+quality 85 are lossy:
+
+```csharp
+var fast = new PdfImageConversionOptions
+{
+    Format = PdfImageOutputFormat.Png,
+    Encoding = PdfImageEncodingOptions.Fast,
+};
+
+PdfImageConverter.SavePageNumber("input.pdf", pageNumber: 1, "page-fast.png", fast);
+```
+
 Expected output:
 
 ```text
 page-0001.png
 page-0001.jpg
 page-0001.webp
+page-fast.png
 ```
 
 ## Load From Memory
@@ -106,7 +120,7 @@ var bitmap = PdfImageConverter.RenderPageNumber(bytes, pageNumber: 1);
 PdfImageWriter.SavePng(bitmap, "page-0001.png");
 
 using var stream = File.OpenRead("input.pdf");
-var fromStream = PdfImageConverter.RenderPage(stream, pageIndex: 0);
+var fromStream = PdfImageConverter.RenderPage(stream, pageIndex: 0, leaveOpen: true);
 PdfImageWriter.SavePng(fromStream, "page-0001-stream.png");
 
 var base64 = Convert.ToBase64String(bytes);
@@ -149,7 +163,7 @@ Render every page in a PDF into a directory with stable numbered file names.
 ```csharp
 using PdfiumRaster;
 
-var pageCount = PdfImageConverter.SaveDocument("input.pdf", "images", fileNamePrefix: "page", new PdfImageConversionOptions
+var pageCount = PdfImageConverter.SaveDocument("input.pdf", "images", fileNamePrefix: "page", options: new PdfImageConversionOptions
 {
     Render = new PdfPageRenderOptions
     {
@@ -169,7 +183,7 @@ images/page-0003.bmp
 
 ## Render Into A Custom Bitmap
 
-Use this when you need placement control similar to Patagames-style rendering.
+Use this when you need explicit placement inside a destination bitmap.
 
 ```csharp
 using PdfiumRaster;
@@ -197,6 +211,62 @@ Expected output:
 
 ```text
 placed-page.bmp
+```
+
+## Repeated Low-Allocation Rendering
+
+Use `PdfRenderSession` when rendering or encoding multiple pages from one PDF. It caches the current page and reusable
+render buffer. Page indexes are zero-based.
+
+```csharp
+using PdfiumRaster;
+
+using var session = PdfRenderSession.Open("input.pdf");
+var options = new PdfImageConversionOptions
+{
+    Render = PdfPageRenderOptions.ScreenPreview,
+    Format = PdfImageOutputFormat.Png,
+    Encoding = PdfImageEncodingOptions.Fast,
+};
+
+Directory.CreateDirectory("images");
+
+for (var pageIndex = 0; pageIndex < session.PageCount; pageIndex++)
+{
+    session.SavePage(pageIndex, $"images/page-{pageIndex + 1:D4}.png", options);
+}
+```
+
+For synchronous pixel processing without allocating an output bitmap on every render, use the callback overload:
+
+```csharp
+byte firstBlue = session.RenderPage(
+    pageIndex: 0,
+    callback: bitmap => bitmap.Pixels[0],
+    options: options);
+```
+
+The callback bitmap is owned by the session and is valid only until the callback returns. Do not store the bitmap or
+its `Pixels` array. A session permits only one operation at a time.
+
+## Write To A Caller-Owned Stream
+
+Output stream overloads leave the stream open, which is useful for HTTP responses and object-storage uploads:
+
+```csharp
+using var output = new MemoryStream();
+
+PdfImageConverter.SavePng(
+    "input.pdf",
+    pageNumber: 1,
+    imageStream: output,
+    options: new PdfImageConversionOptions
+    {
+        Render = PdfPageRenderOptions.ScreenPreview,
+        Encoding = PdfImageEncodingOptions.Fast,
+    });
+
+output.Position = 0;
 ```
 
 ## Rendering Test Output

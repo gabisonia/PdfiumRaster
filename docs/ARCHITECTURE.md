@@ -29,30 +29,50 @@ The library targets `netstandard2.0`. Tests target modern .NET and exercise the 
 
 `PdfDocument` and `PdfPage` are the lower-level document/page API. Use these when a caller needs direct control over document lifetime, page lifetime, target bitmap placement, or manual rendering.
 
+`PdfRenderSession` is the optimized repeated-operation API. It owns PDFium initialization and the document, caches
+the current loaded page, and keeps one correctly sized `PdfBitmapLease` for scoped rendering and saving. It is
+synchronous and permits one operation at a time.
+
 `PdfiumNative` is the native boundary. PDFium P/Invoke declarations and platform-specific native loading rules should stay centralized there.
 
 `PdfBitmap` is the managed representation of rendered BGRA pixels. It carries width, height, stride, and the pixel buffer used by render and image-writing code.
+
+`PdfBitmapLease` owns an `ArrayPool<byte>` buffer. On first native render it pins that buffer and creates an
+`FPDF_BITMAP`; subsequent renders reuse both until disposal. A lease keeps a PDFium initialization reference alive
+for the native bitmap lifetime.
 
 `PdfImageWriter` writes existing `PdfBitmap` instances. BMP is written directly by PdfiumRaster. PNG, JPEG, and WebP are encoded through SkiaSharp.
 
 Options are split by responsibility:
 
 - `PdfPageRenderOptions` controls rendering size, DPI, rotation, background, anti-aliasing, and PDFium render flags.
-- `PdfImageConversionOptions` controls output format, color mode, black-and-white threshold, and render options.
+- `PdfImageEncodingOptions` controls JPEG/WebP quality and optional PNG compression.
+- `PdfImageConversionOptions` composes render, encoding, output format, color mode, and black-and-white settings.
 
 ## Rendering Flow
 
 A typical conversion follows this path:
 
 ```text
-PDF input -> PdfDocument -> PdfPage -> PDFium render -> PdfBitmap -> color mode -> image writer
+PDF input -> PdfDocument -> PdfPage -> PDFium render -> PdfBitmap -> color mode -> image writer -> destination
 ```
 
 Inputs can be file paths, byte arrays, streams, or Base64 strings. File paths and seekable streams are preferred for large files because they avoid copying the whole PDF into one managed byte array.
 
 Rendered pages are held as pixel buffers. Memory use grows with page size, DPI, requested width/height, and number of pages held by the caller.
 
-PNG, JPEG, and WebP encoding pins the rendered pixel buffer during synchronous SkiaSharp encoding and avoids copying the full bitmap into a second managed pixel buffer.
+PNG, JPEG, and WebP encoding pins the rendered pixel buffer during synchronous SkiaSharp encoding and writes from an
+`SKPixmap` directly to the destination stream. This avoids a second full-size managed pixel buffer and an intermediate
+encoded `SKData` buffer.
+
+The high-throughput session path is:
+
+```text
+PdfRenderSession -> cached PdfPage -> reusable PdfBitmapLease -> synchronous callback or image writer
+```
+
+An owned-bitmap session render still allocates the returned pixel array. Caller-owned and scoped session rendering
+avoid that full-size per-call allocation when output dimensions remain stable.
 
 ## Native Dependencies
 
@@ -85,13 +105,28 @@ var pageCount = PdfImageConverter.GetPageCount(stream, leaveOpen: true);
 
 Seekable streams use PDFium custom file access and are not copied into one managed byte array. Byte array and Base64 APIs keep the full PDF in memory. Non-seekable streams are buffered because PDFium requires random access.
 
-Large rendered pages can still allocate large pixel buffers. DPI, page dimensions, requested output width/height, and parallel rendering strategy matter as much as PDF input size.
+Large rendered pages can still allocate large pixel buffers. DPI, page dimensions, requested output width/height, and
+the number of live output bitmaps matter as much as PDF input size. The pooled backing array may be larger than
+`Stride * Height`; only that logical pixel region belongs to the bitmap.
+
+## Production Resource Boundaries
+
+PDFium is native code parsing potentially untrusted input. Applications should keep the managed and native packages
+updated and apply limits before rendering: maximum input size, page count, output dimensions, DPI/scale, total pixels,
+and request duration. Public numeric validation rejects invalid values but intentionally does not impose an
+application-specific maximum. A separately supervised worker process provides stronger crash, timeout, and memory
+isolation for hostile or very large documents.
 
 ## Threading Model
 
-PDFium is not thread-safe. PdfiumRaster serializes native PDFium calls with a shared lock.
+PDFium is not thread-safe. PdfiumRaster serializes native PDFium calls with a process-wide shared lock.
 
-For application code, this means a single process should not expect true parallel PDFium rendering. If true parallel rendering is required, use multiple processes and keep each process isolated.
+For application code, this means a single process should not expect true parallel PDFium rendering. Managed work such
+as request handling or image delivery can still be concurrent, but calls inside PDFium are serialized.
+Callers must still coordinate the lifetime of disposable document, page, and lease objects; the shared native lock is
+not permission to dispose an object while another operation is using it. `PdfRenderSession` adds a per-session
+operation guard and rejects concurrent or reentrant operations. If true parallel rendering is required, use multiple
+processes and keep each process isolated.
 
 ## Test Strategy
 
@@ -141,6 +176,14 @@ Performance benchmarks live in `benchmarks/PdfiumRaster.Benchmarks` and are run 
 
 ```bash
 make benchmark
+```
+
+Focused suites are also available:
+
+```bash
+make benchmark-session
+make benchmark-encoding
+make benchmark-compare
 ```
 
 Benchmark guidance and current memory notes are documented in [PERFORMANCE.md](PERFORMANCE.md).

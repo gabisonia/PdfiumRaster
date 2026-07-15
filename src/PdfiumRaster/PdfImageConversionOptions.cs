@@ -18,6 +18,11 @@ public sealed class PdfImageConversionOptions
     public PdfImageOutputFormat Format { get; set; } = PdfImageOutputFormat.Bmp;
 
     /// <summary>
+    /// Gets or sets compressed image encoding settings used by PNG, JPEG, and WebP save helpers.
+    /// </summary>
+    public PdfImageEncodingOptions Encoding { get; set; } = new();
+
+    /// <summary>
     /// Gets or sets the color conversion applied after rendering.
     /// </summary>
     public PdfImageColorMode ColorMode { get; set; }

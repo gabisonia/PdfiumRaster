@@ -44,6 +44,9 @@ int pageCount = PdfImageConverter.GetPageCount(stream, leaveOpen: true);
 
 Seekable streams are loaded through PDFium custom file access, so the full PDF is not copied into a managed byte array. Byte array and Base64 APIs keep the full PDF in memory. Non-seekable streams are buffered into memory before loading because PDFium requires random access.
 
+Input stream overloads use `leaveOpen: false` by default. Pass `leaveOpen: true` when ownership remains with the
+caller. Output stream overloads always leave the destination stream open.
+
 ## Rendering
 
 Zero-based page indexes:
@@ -93,6 +96,60 @@ Render all pages:
 IEnumerable<PdfBitmap> pages = PdfImageConverter.RenderDocument("input.pdf");
 ```
 
+Returned `PdfBitmap` instances are caller-owned managed objects. Pixels use BGRA byte order, `Stride` is measured in
+bytes per row, and the pixel buffer occupies at least `Stride * Height` bytes. Rendering and memory cost grow with
+the output pixel count.
+
+## Reusable Render Sessions
+
+`PdfRenderSession` owns PDFium initialization, the open document, the current loaded page, and a correctly sized
+pooled render buffer. Use it for repeated operations on one PDF:
+
+```csharp
+using var session = PdfRenderSession.Open("input.pdf");
+var options = new PdfImageConversionOptions
+{
+    Render = PdfPageRenderOptions.ScreenPreview,
+};
+
+PdfBitmap owned = session.RenderPage(pageIndex: 0, options: options);
+var destination = PdfBitmap.Create(owned.Width, owned.Height);
+session.RenderPageInto(pageIndex: 0, destination: destination, options: options);
+
+int width = session.RenderPage(pageIndex: 0, callback: bitmap => bitmap.Width, options: options);
+byte firstBlue = session.RenderPage(pageIndex: 0, callback: bitmap => bitmap.Pixels[0], options: options);
+```
+
+Session page indexes are zero-based. `RenderPage` returning `PdfBitmap` allocates an independently owned pixel buffer.
+The callback overloads reuse the session buffer; the bitmap and its pixels are valid only until the callback returns
+and must not be retained. Callbacks are synchronous. Their exceptions propagate, and the session remains usable.
+
+A session accepts one operation at a time. Concurrent or reentrant operations throw `InvalidOperationException`.
+This includes trying to use or dispose the session from inside its callback. Dispose the session after use. Path,
+byte-array, and stream inputs are supported:
+
+```csharp
+PdfRenderSession.Open(string pdfPath, string? password = null);
+PdfRenderSession.Open(byte[] pdfBytes, string? password = null);
+PdfRenderSession.Open(Stream pdfStream, bool leaveOpen = false, string? password = null);
+```
+
+Seekable streams use random access without a full managed copy. Non-seekable streams are buffered. Byte arrays remain
+pinned and fully resident until the session is disposed.
+
+`SavePage` has file-path and stream overloads and uses the session-owned reusable buffer internally. Destination
+streams remain open:
+
+```csharp
+using var output = File.Create("page.png");
+session.SavePage(pageIndex: 0, imageStream: output, options: new PdfImageConversionOptions
+{
+    Render = PdfPageRenderOptions.ScreenPreview,
+    Format = PdfImageOutputFormat.Png,
+    Encoding = PdfImageEncodingOptions.Fast,
+});
+```
+
 ## Saving Images
 
 Save with an explicit format:
@@ -133,6 +190,10 @@ page-0002.bmp
 page-0003.bmp
 ```
 
+`RenderDocument`, `RenderPages`, `SaveDocument`, `SavePages`, and `SavePageNumbers` open the input document once for
+the operation. Single-page path helpers reopen the PDF on every call; prefer `PdfRenderSession` for repeated
+latency-sensitive single-page work.
+
 ## Output Formats
 
 ```csharp
@@ -155,6 +216,11 @@ var options = new PdfImageConversionOptions
     Format = PdfImageOutputFormat.Png,
     ColorMode = PdfImageColorMode.BlackAndWhite,
     BlackAndWhiteThreshold = 160,
+    Encoding = new PdfImageEncodingOptions
+    {
+        Quality = 85,
+        PngCompressionLevel = 1,
+    },
     Render = new PdfPageRenderOptions
     {
         Dpi = 300,
@@ -167,6 +233,38 @@ var options = new PdfImageConversionOptions
     },
 };
 ```
+
+`Quality` applies to JPEG and lossy WebP and accepts 0 through 100. `PngCompressionLevel` accepts 0 through 9; its
+default `null` preserves Skia's default compression. `PdfImageEncodingOptions.Fast` returns a new instance with
+quality 85 and PNG compression level 1. The preset prioritizes speed; lower PNG compression can increase file size.
+Existing defaults remain quality-oriented.
+
+### Defaults
+
+| Setting | Default |
+|---|---|
+| Render DPI | 300 |
+| Scale | 1 |
+| Render flags | `Annot | LcdText` |
+| Anti-aliasing | `All` |
+| Background | Opaque white (`0xFFFFFFFF`) |
+| Output format | BMP |
+| Color mode | Color |
+| JPEG/WebP quality | 100 |
+| PNG compression | Skia default |
+
+`PdfPageRenderOptions.ScreenPreview` returns a new 96-DPI options instance on every access.
+
+When `FillBackground` is `false`, PDFium renders without a pre-fill. Newly allocated bitmaps start cleared, but an
+existing caller-owned bitmap or lease can retain pixels from an earlier render wherever the page does not paint.
+Clear reusable destinations explicitly when transparent output must start from zero.
+
+### Output Sizing
+
+Without explicit dimensions, output pixels are calculated from PDF points, DPI, and scale. PDF points use 72 units
+per inch. Set `Width` or `Height` for an explicit pixel dimension. When `WithAspectRatio` is `true`, set exactly one
+of `Width` and `Height`; the other dimension is calculated from the page aspect ratio. A 90- or 270-degree rotation
+swaps the final output width and height.
 
 ### Color Modes
 
@@ -275,11 +373,7 @@ Rendering cost grows approximately with pixel count. For previews, thumbnails, a
 explicitly select an appropriate DPI instead of the 300 DPI print-oriented default:
 
 ```csharp
-var preview = new PdfPageRenderOptions
-{
-    Dpi = 96,
-    Flags = PdfRenderFlags.Annot,
-};
+var preview = PdfPageRenderOptions.ScreenPreview;
 ```
 
 ## Writing Existing Bitmaps
@@ -289,6 +383,11 @@ PdfImageWriter.SaveBmp(bitmap, "page.bmp");
 PdfImageWriter.SavePng(bitmap, "page.png");
 PdfImageWriter.SaveJpeg(bitmap, "page.jpg");
 PdfImageWriter.SaveWebp(bitmap, "page.webp");
+
+var fast = PdfImageEncodingOptions.Fast;
+PdfImageWriter.SavePng(bitmap, "page-fast.png", fast);
+PdfImageWriter.SaveJpeg(bitmap, "page-fast.jpg", fast);
+PdfImageWriter.SaveWebp(bitmap, "page-fast.webp", fast);
 ```
 
 Stream writers are also available:
@@ -298,7 +397,11 @@ PdfImageWriter.WriteBmp(bitmap, stream);
 PdfImageWriter.WritePng(bitmap, stream);
 PdfImageWriter.WriteJpeg(bitmap, stream);
 PdfImageWriter.WriteWebp(bitmap, stream);
+PdfImageWriter.WritePng(bitmap, stream, PdfImageEncodingOptions.Fast);
 ```
+
+Compressed writers encode directly from the pinned bitmap pixels into the destination stream. Stream overloads do
+not close caller-owned streams.
 
 The converter facade also supports saving directly to streams:
 
@@ -317,11 +420,20 @@ bblanchon.PDFium.macOS
 bblanchon.PDFium.Win32
 ```
 
-These are referenced with `PrivateAssets="analyzers"` so native runtime assets flow transitively to consuming applications.
+The NuGet dependency graph carries the matching native runtime assets to consuming applications. No manual native
+binary copy is required for supported runtime identifiers.
 
-## Threading
+## Errors And Threading
 
-PDFium is not thread-safe. PdfiumRaster serializes calls into PDFium with a shared lock. Use separate processes for true parallel rendering.
+Public APIs validate nulls, page ranges, dimensions, DPI, rotation, encoding ranges, and destination bitmap sizes.
+PDFium-reported document and page failures raise `PdfiumException`; inspect its `Error` property rather than retrying
+blindly.
+
+PDFium is not thread-safe. PdfiumRaster serializes native PDFium calls with a process-wide shared lock. Concurrent
+native calls do not render inside PDFium in parallel. Callers must still coordinate ownership of disposable
+`PdfDocument`, `PdfPage`, and `PdfBitmapLease` instances and must not dispose them while another operation is using
+them. `PdfRenderSession` is synchronous and single-operation; concurrent and reentrant session operations throw
+`InvalidOperationException`. Use separate processes for true parallel rendering.
 
 ## Current Scope
 

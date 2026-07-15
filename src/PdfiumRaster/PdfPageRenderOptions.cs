@@ -10,6 +10,12 @@ public sealed class PdfPageRenderOptions
     /// </summary>
     public const double DefaultDpi = 300;
 
+    /// <summary>
+    /// Gets render settings intended for screen previews at 96 DPI.
+    /// </summary>
+    /// <remarks>A new options instance is returned on every access.</remarks>
+    public static PdfPageRenderOptions ScreenPreview => new() { Dpi = 96 };
+
     private double _dpi = DefaultDpi;
     private PdfPageRotation _rotation;
     private double _scale = 1;

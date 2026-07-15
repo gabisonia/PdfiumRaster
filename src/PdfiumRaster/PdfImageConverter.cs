@@ -728,6 +728,22 @@ public static class PdfImageConverter
     /// <param name="format">Image output format.</param>
     public static void SaveBitmap(PdfBitmap bitmap, string path, PdfImageOutputFormat format)
     {
+        SaveBitmap(bitmap, path, format, new PdfImageEncodingOptions());
+    }
+
+    /// <summary>
+    /// Saves a rendered bitmap to a file in the requested image format.
+    /// </summary>
+    /// <param name="bitmap">Rendered bitmap to save.</param>
+    /// <param name="path">Destination image path.</param>
+    /// <param name="format">Image output format.</param>
+    /// <param name="encoding">Compressed image encoding settings. BMP output ignores these settings.</param>
+    public static void SaveBitmap(
+        PdfBitmap bitmap,
+        string path,
+        PdfImageOutputFormat format,
+        PdfImageEncodingOptions encoding)
+    {
         if (bitmap is null)
         {
             throw new ArgumentNullException(nameof(bitmap));
@@ -738,19 +754,24 @@ public static class PdfImageConverter
             throw new ArgumentException("Path cannot be null or whitespace.", nameof(path));
         }
 
+        if (encoding is null)
+        {
+            throw new ArgumentNullException(nameof(encoding));
+        }
+
         switch (format)
         {
             case PdfImageOutputFormat.Bmp:
                 PdfImageWriter.SaveBmp(bitmap, path);
                 break;
             case PdfImageOutputFormat.Png:
-                PdfImageWriter.SavePng(bitmap, path);
+                PdfImageWriter.SavePng(bitmap, path, encoding);
                 break;
             case PdfImageOutputFormat.Jpeg:
-                PdfImageWriter.SaveJpeg(bitmap, path);
+                PdfImageWriter.SaveJpeg(bitmap, path, encoding);
                 break;
             case PdfImageOutputFormat.Webp:
-                PdfImageWriter.SaveWebp(bitmap, path);
+                PdfImageWriter.SaveWebp(bitmap, path, encoding);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(format), format, "Image format is not supported.");
@@ -765,6 +786,22 @@ public static class PdfImageConverter
     /// <param name="format">Image output format.</param>
     public static void SaveBitmap(PdfBitmap bitmap, Stream stream, PdfImageOutputFormat format)
     {
+        SaveBitmap(bitmap, stream, format, new PdfImageEncodingOptions());
+    }
+
+    /// <summary>
+    /// Writes a rendered bitmap to a stream in the requested image format without closing the stream.
+    /// </summary>
+    /// <param name="bitmap">Rendered bitmap to save.</param>
+    /// <param name="stream">Destination image stream, which remains open.</param>
+    /// <param name="format">Image output format.</param>
+    /// <param name="encoding">Compressed image encoding settings. BMP output ignores these settings.</param>
+    public static void SaveBitmap(
+        PdfBitmap bitmap,
+        Stream stream,
+        PdfImageOutputFormat format,
+        PdfImageEncodingOptions encoding)
+    {
         if (bitmap is null)
         {
             throw new ArgumentNullException(nameof(bitmap));
@@ -775,19 +812,24 @@ public static class PdfImageConverter
             throw new ArgumentNullException(nameof(stream));
         }
 
+        if (encoding is null)
+        {
+            throw new ArgumentNullException(nameof(encoding));
+        }
+
         switch (format)
         {
             case PdfImageOutputFormat.Bmp:
                 PdfImageWriter.WriteBmp(bitmap, stream);
                 break;
             case PdfImageOutputFormat.Png:
-                PdfImageWriter.WritePng(bitmap, stream);
+                PdfImageWriter.WritePng(bitmap, stream, encoding);
                 break;
             case PdfImageOutputFormat.Jpeg:
-                PdfImageWriter.WriteJpeg(bitmap, stream);
+                PdfImageWriter.WriteJpeg(bitmap, stream, encoding);
                 break;
             case PdfImageOutputFormat.Webp:
-                PdfImageWriter.WriteWebp(bitmap, stream);
+                PdfImageWriter.WriteWebp(bitmap, stream, encoding);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(format), format, "Image format is not supported.");
@@ -837,7 +879,7 @@ public static class PdfImageConverter
         };
     }
 
-    private static PdfPageRenderOptions GetRenderOptions(PdfImageConversionOptions options)
+    internal static PdfPageRenderOptions GetRenderOptions(PdfImageConversionOptions options)
     {
         var source = options.Render ?? new PdfPageRenderOptions();
         if (options.ColorMode == PdfImageColorMode.Color)
@@ -872,7 +914,7 @@ public static class PdfImageConverter
         ApplyColorMode(bitmap, options.ColorMode, options.BlackAndWhiteThreshold);
     }
 
-    private static void ApplyConversionColorMode(PdfBitmap bitmap, PdfImageConversionOptions options)
+    internal static void ApplyConversionColorMode(PdfBitmap bitmap, PdfImageConversionOptions options)
     {
         switch (options.ColorMode)
         {
@@ -977,7 +1019,7 @@ public static class PdfImageConverter
         return sizes;
     }
 
-    private static void RenderPageInto(PdfPage page, PdfBitmap destination, PdfImageConversionOptions options)
+    internal static void RenderPageInto(PdfPage page, PdfBitmap destination, PdfImageConversionOptions options)
     {
         var renderOptions = GetRenderOptions(options);
         page.Render(destination, renderOptions);
@@ -999,7 +1041,7 @@ public static class PdfImageConverter
         using var bitmapLease = RentBitmapLease(page, renderOptions);
         var bitmap = RenderToLease(page, bitmapLease, renderOptions, options);
 
-        SaveBitmap(bitmap, imagePath, options.Format);
+        SaveBitmap(bitmap, imagePath, options.Format, GetEncodingOptions(options));
     }
 
     private static void SavePageDirect(
@@ -1017,7 +1059,7 @@ public static class PdfImageConverter
         using var bitmapLease = RentBitmapLease(page, renderOptions);
         var bitmap = RenderToLease(page, bitmapLease, renderOptions, options);
 
-        SaveBitmap(bitmap, imageStream, options.Format);
+        SaveBitmap(bitmap, imageStream, options.Format, GetEncodingOptions(options));
     }
 
     private static IEnumerable<PdfBitmap> RenderPages(
@@ -1076,7 +1118,7 @@ public static class PdfImageConverter
                 var bitmap = RenderToLease(page, bitmapLease, renderOptions, options);
                 var imagePath = Path.Combine(outputDirectory, $"{fileNamePrefix}-{pageIndex + 1:D4}{extension}");
 
-                SaveBitmap(bitmap, imagePath, options.Format);
+                SaveBitmap(bitmap, imagePath, options.Format, GetEncodingOptions(options));
             }
         }
         finally
@@ -1112,7 +1154,7 @@ public static class PdfImageConverter
                 var bitmap = RenderToLease(page, bitmapLease, renderOptions, options);
                 var imagePath = Path.Combine(outputDirectory, $"{fileNamePrefix}-{pageIndex + 1:D4}{extension}");
 
-                SaveBitmap(bitmap, imagePath, options.Format);
+                SaveBitmap(bitmap, imagePath, options.Format, GetEncodingOptions(options));
                 savedCount++;
             }
         }
@@ -1124,7 +1166,7 @@ public static class PdfImageConverter
         return savedCount;
     }
 
-    private static PdfBitmapLease EnsureBitmapLease(
+    internal static PdfBitmapLease EnsureBitmapLease(
         PdfBitmapLease? bitmapLease,
         PdfPage page,
         PdfPageRenderOptions renderOptions)
@@ -1150,7 +1192,7 @@ public static class PdfImageConverter
         return PdfBitmapLease.Rent(width, height, clear: false);
     }
 
-    private static PdfBitmap RenderToLease(
+    internal static PdfBitmap RenderToLease(
         PdfPage page,
         PdfBitmapLease bitmapLease,
         PdfPageRenderOptions renderOptions,
@@ -1171,6 +1213,11 @@ public static class PdfImageConverter
     private static void ClearPixelRegion(PdfBitmap bitmap)
     {
         Array.Clear(bitmap.Pixels, 0, checked(bitmap.Stride * bitmap.Height));
+    }
+
+    internal static PdfImageEncodingOptions GetEncodingOptions(PdfImageConversionOptions options)
+    {
+        return options.Encoding ?? new PdfImageEncodingOptions();
     }
 
     private static void ValidateOutput(string outputDirectory, string fileNamePrefix)

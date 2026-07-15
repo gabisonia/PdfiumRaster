@@ -2,6 +2,9 @@
 
 This checklist is for publishing `PdfiumRaster` to NuGet.
 
+Run a release from a reviewed commit on the intended release branch with a clean working tree. Confirm that the
+version has not already been published to NuGet.org; package versions are immutable.
+
 ## GitHub Setup
 
 Create a NuGet.org Trusted Publishing policy for this repository.
@@ -63,17 +66,28 @@ Update `VersionPrefix` in:
 src/PdfiumRaster/PdfiumRaster.csproj
 ```
 
-Use semantic versioning. Suggested first release:
+Use semantic versioning, for example:
 
 ```xml
-<VersionPrefix>0.1.0</VersionPrefix>
+<VersionPrefix>0.3.0</VersionPrefix>
 ```
 
 The manual workflow can override this with `/p:PackageVersion=<version>`, so updating `VersionPrefix` is mostly for source consistency.
 
+Keep `PACKAGE_VERSION` in the root `Makefile` synchronized with `VersionPrefix`. The local `inspect-package` and
+`smoke-package` targets use that value to locate and install the package:
+
+```make
+PACKAGE_VERSION := 0.3.0
+```
+
+Update user-facing documentation and release notes for public API, behavior, runtime dependency, and performance
+changes before packing.
+
 ### 2. Run Release Checks
 
 ```bash
+make clean
 make release-check
 ```
 
@@ -89,6 +103,14 @@ Performance benchmarks are not part of the release gate, but can be run before l
 
 ```bash
 make benchmark
+```
+
+For rendering or encoding optimizations, also preserve the focused reports when reviewing regressions:
+
+```bash
+make benchmark-session
+make benchmark-encoding
+make benchmark-compare
 ```
 
 ### 3. Pack Locally
@@ -130,6 +152,9 @@ SkiaSharp.NativeAssets.macOS
 SkiaSharp.NativeAssets.Win32
 ```
 
+Confirm that `lib/netstandard2.0/PdfiumRaster.xml` contains documentation entries for every newly added public API and
+that the package README examples match the packed version.
+
 ### 5. Smoke Test Local Package
 
 ```bash
@@ -160,9 +185,16 @@ dotnet add package PdfiumRaster
 
 Render one PDF page to confirm native assets restore and load correctly.
 
+Test at least one runtime identifier for each operating system supported by the release when native dependency
+versions change. CI currently exercises Linux; Windows and macOS verification should be recorded separately for a
+native-runtime update.
+
 ### 8. Tag Release
 
 ```bash
 git tag v<version>
 git push origin v<version>
 ```
+
+Create the tag from the exact commit that produced the published package, then attach or link the `.nupkg`, `.snupkg`,
+test result, and relevant benchmark summaries in the release record.
