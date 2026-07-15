@@ -33,6 +33,10 @@ The library targets `netstandard2.0`. Tests target modern .NET and exercise the 
 the current loaded page, and keeps one correctly sized `PdfBitmapLease` for scoped rendering and saving. It is
 synchronous and permits one operation at a time.
 
+`PdfRenderDispatcher` is the mixed-document concurrency API. Multiple producers submit to a bounded channel, one
+consumer performs PDFium work, and a configurable number of workers encode completed bitmaps. It provides async
+backpressure without weakening the process-wide native serialization rule.
+
 `PdfiumNative` is the native boundary. PDFium P/Invoke declarations and platform-specific native loading rules should stay centralized there.
 
 `PdfBitmap` is the managed representation of rendered BGRA pixels. It carries width, height, stride, and the pixel buffer used by render and image-writing code.
@@ -73,6 +77,16 @@ PdfRenderSession -> cached PdfPage -> reusable PdfBitmapLease -> synchronous cal
 
 An owned-bitmap session render still allocates the returned pixel array. Caller-owned and scoped session rendering
 avoid that full-size per-call allocation when output dimensions remain stable.
+
+The concurrent save path is:
+
+```text
+concurrent callers -> bounded request channel -> one PDFium worker -> bounded bitmap slots -> encoding workers
+```
+
+An encoding slot is acquired before rendering a save request. Consequently, slow output cannot cause an unbounded
+backlog of full-size rendered pages. Raw bitmap requests bypass encoding slots and transfer their managed pixel memory
+to the caller.
 
 ## Native Dependencies
 
@@ -121,8 +135,9 @@ isolation for hostile or very large documents.
 
 PDFium is not thread-safe. PdfiumRaster serializes native PDFium calls with a process-wide shared lock.
 
-For application code, this means a single process should not expect true parallel PDFium rendering. Managed work such
-as request handling or image delivery can still be concurrent, but calls inside PDFium are serialized.
+For application code, this means a single process should not expect true parallel PDFium rendering. `PdfRenderDispatcher`
+accepts concurrent callers through a bounded asynchronous channel but uses one native consumer. Image encoding and
+destination writing occur after the document is closed and may run concurrently because they do not use PDFium.
 Callers must still coordinate the lifetime of disposable document, page, and lease objects; the shared native lock is
 not permission to dispose an object while another operation is using it. `PdfRenderSession` adds a per-session
 operation guard and rejects concurrent or reentrant operations. If true parallel rendering is required, use multiple
@@ -184,6 +199,7 @@ Focused suites are also available:
 make benchmark-session
 make benchmark-encoding
 make benchmark-compare
+make benchmark-dispatcher
 ```
 
 Benchmark guidance and current memory notes are documented in [PERFORMANCE.md](PERFORMANCE.md).

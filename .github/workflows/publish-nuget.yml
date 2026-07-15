@@ -6,7 +6,7 @@ on:
       channel:
         description: "Release channel"
         required: true
-        default: "beta"
+        default: "stable"
         type: choice
         options:
           - beta
@@ -100,6 +100,9 @@ jobs:
               <add key="local" value="$GITHUB_WORKSPACE/artifacts" />
               <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
             </packageSources>
+            <config>
+              <add key="globalPackagesFolder" value=".packages" />
+            </config>
           </configuration>
           XML
           dotnet add package PdfiumRaster --version "${{ steps.version.outputs.package_version }}"
@@ -108,10 +111,19 @@ jobs:
           using PdfiumRaster;
 
           PdfImageConverter.SavePng("input.pdf", pageNumber: 1, "page.png");
-
-          if (!File.Exists("page.png") || new FileInfo("page.png").Length == 0)
+          using var dispatcher = new PdfRenderDispatcher();
+          await dispatcher.SavePageAsync("input.pdf", pageIndex: 0, "page-async.png", new PdfImageConversionOptions
           {
-              throw new InvalidOperationException("Smoke test did not generate page.png.");
+              Render = PdfPageRenderOptions.ScreenPreview,
+              Format = PdfImageOutputFormat.Png,
+              Encoding = PdfImageEncodingOptions.Fast,
+          });
+          await dispatcher.CompleteAsync();
+
+          if (!File.Exists("page.png") || new FileInfo("page.png").Length == 0 ||
+              !File.Exists("page-async.png") || new FileInfo("page-async.png").Length == 0)
+          {
+              throw new InvalidOperationException("Smoke test did not generate both page images.");
           }
           CS
           dotnet run --configuration Release

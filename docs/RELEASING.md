@@ -27,6 +27,8 @@ version: package version
 nuget_user: NuGet.org profile name that owns the trusted publishing policy
 ```
 
+The workflow defaults to the stable channel. Select beta explicitly only for a prerelease.
+
 Stable releases require a version without a prerelease suffix:
 
 ```text
@@ -91,7 +93,9 @@ make clean
 make release-check
 ```
 
-This runs the normal test suite, creates the NuGet and symbol packages, inspects the package contents, installs the local package into a fresh console app, and renders one page to confirm native assets load correctly.
+This runs the normal test suite, creates the NuGet and symbol packages, inspects the package contents, installs the
+local package into a fresh console app with an isolated NuGet cache, and renders through both the synchronous converter
+and concurrent dispatcher to confirm the managed dependency graph and native assets load correctly.
 
 Local-only tests use ignored assets such as `tests/PdfiumRaster.Tests/TestAssets/annotations.pdf` and are not part of `make release-check`. Run them separately when the local asset exists:
 
@@ -111,6 +115,7 @@ For rendering or encoding optimizations, also preserve the focused reports when 
 make benchmark-session
 make benchmark-encoding
 make benchmark-compare
+make benchmark-dispatcher
 ```
 
 ### 3. Pack Locally

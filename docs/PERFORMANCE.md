@@ -20,6 +20,7 @@ Run focused suites with:
 make benchmark-session
 make benchmark-encoding
 make benchmark-compare
+make benchmark-dispatcher
 ```
 
 BenchmarkDotNet output is written to:
@@ -41,6 +42,7 @@ Benchmarks cover:
 - An equivalent hot-render comparison with PDFiumCore
 - Legacy reopen versus owned, caller-owned, and scoped `PdfRenderSession` rendering at 96, 144, and 300 DPI
 - Isolated PNG encoding at the Skia default and zlib compression levels 1, 6, and 9
+- Sequential batches versus `PdfRenderDispatcher` batches for raw rendering and fast PNG output
 
 Use Release builds and compare allocated bytes as well as mean runtime. Some legacy image-output benchmarks call
 `MemoryStream.ToArray()` so BenchmarkDotNet can consume the result; that final byte-array allocation belongs to the
@@ -95,6 +97,23 @@ The reported encoding allocation is dominated by the `MemoryStream` destination 
 response, or other streaming destination avoids retaining the complete encoded image in a managed byte array; it does
 not eliminate allocations performed by the destination itself.
 
+### Concurrent Dispatcher
+
+The dispatcher short-run benchmark uses batches of four independent 96-DPI requests. Fast-PNG output uses two
+encoding workers and a counting destination stream so encoded bytes are consumed without retaining them:
+
+| Method | Batch mean | Managed allocation | Relative throughput |
+|---|---:|---:|---:|
+| Sequential fast PNG | 69.11 ms | 3.59 KB | 1.00x |
+| Dispatcher fast PNG | 38.66 ms | 7.17 KB | 1.79x |
+| Sequential raw bitmap | 12.49 ms | 13.61 MB | 1.00x |
+| Dispatcher raw bitmap | 12.30 ms | 13.61 MB | Effectively tied |
+
+Parallel encoding reduced the four-image PNG batch time by about 44%. The additional small managed allocation is
+dispatcher task and queue bookkeeping. Raw rendering did not materially improve because both paths execute the same
+PDFium work serially; its confidence intervals overlap. These short-run results validate the pipeline but should not
+be used to select production capacity without workload-specific measurements.
+
 ## PDFiumCore Comparison
 
 Run only the wrapper comparison with:
@@ -146,6 +165,11 @@ loaded page, and resizes its pooled native bitmap only when output dimensions ch
 when the pixels can be consumed synchronously; use the owned-bitmap or caller-destination overload when pixels must
 outlive the call.
 
+`PdfRenderDispatcher` bounds mixed-document concurrency. Its request queue stores descriptors and references, while
+`EncodingConcurrency` bounds full-size leased save buffers. With two encoding workers, at most two rendered save
+buffers are retained by the pipeline. Raw `PdfBitmap` results become caller-owned and are no longer controlled by the
+dispatcher after task completion.
+
 ## Usage Guidance
 
 Prefer file path or seekable stream APIs for large PDFs. Byte array and Base64 APIs keep the entire PDF in managed memory.
@@ -163,3 +187,12 @@ and JPEG/WebP quality 85. These presets are opt-in; existing 300 DPI and encoder
 PNG setting may produce larger files, while JPEG/WebP quality 85 uses lossy compression.
 
 Use stream save overloads when writing to HTTP responses, cloud object streams, or other non-file destinations. This avoids temporary output files and keeps ownership of the destination stream with the caller.
+
+For unrelated concurrent requests, share one `PdfRenderDispatcher`. A larger `QueueCapacity` absorbs bursts but may
+retain more input byte arrays or streams while jobs wait. Raising `EncodingConcurrency` can improve compressed-output
+throughput but also increases CPU use and permits one additional full rendered page per worker. Measure the dispatcher
+benchmark against the production PDF corpus before changing either default.
+
+The dispatcher cannot improve raw PDFium render throughput in one process because native work remains serialized. If
+raw rendering is the bottleneck after measuring encoding separately, use multiple supervised processes rather than
+increasing in-process task concurrency.

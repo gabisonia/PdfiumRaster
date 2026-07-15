@@ -3,10 +3,10 @@ SOLUTION := PdfiumRaster.slnx
 PROJECT := src/PdfiumRaster/PdfiumRaster.csproj
 CONFIGURATION := Release
 ARTIFACTS_DIR := artifacts
-PACKAGE_VERSION := 0.2.0
+PACKAGE_VERSION := 0.3.0
 PACKAGE := $(ARTIFACTS_DIR)/PdfiumRaster.$(PACKAGE_VERSION).nupkg
 
-.PHONY: help restore build test test-local pack inspect-package smoke-package benchmark benchmark-compare benchmark-session benchmark-encoding release-check clean
+.PHONY: help restore build test test-local pack inspect-package smoke-package benchmark benchmark-compare benchmark-session benchmark-encoding benchmark-dispatcher release-check clean
 
 help:
 	@printf '%s\n' \
@@ -22,6 +22,7 @@ help:
 		'  make benchmark-compare Compare PdfiumRaster with PDFiumCore' \
 		'  make benchmark-session Compare legacy and reusable session rendering' \
 		'  make benchmark-encoding Compare PNG compression levels' \
+		'  make benchmark-dispatcher Compare sequential and concurrent dispatcher batches' \
 		'  make release-check    Run tests, pack, inspect, and package smoke test' \
 		'  make clean            Remove build and package outputs'
 
@@ -58,6 +59,9 @@ smoke-package: $(PACKAGE)
 		"    <add key=\"local\" value=\"$$repo/$(ARTIFACTS_DIR)\" />" \
 		'    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />' \
 		'  </packageSources>' \
+		'  <config>' \
+		'    <add key="globalPackagesFolder" value=".packages" />' \
+		'  </config>' \
 		'</configuration>' > NuGet.config; \
 	dotnet add package PdfiumRaster --version $(PACKAGE_VERSION) >/dev/null; \
 	cp "$$repo/tests/PdfiumRaster.Tests/TestAssets/axf-annotation-1.pdf" ./input.pdf; \
@@ -65,10 +69,19 @@ smoke-package: $(PACKAGE)
 		'using PdfiumRaster;' \
 		'' \
 		'PdfImageConverter.SavePng("input.pdf", pageNumber: 1, "page.png");' \
-		'' \
-		'if (!File.Exists("page.png") || new FileInfo("page.png").Length == 0)' \
+		'using var dispatcher = new PdfRenderDispatcher();' \
+		'await dispatcher.SavePageAsync("input.pdf", pageIndex: 0, "page-async.png", new PdfImageConversionOptions' \
 		'{' \
-		'    throw new InvalidOperationException("Smoke test did not generate page.png.");' \
+		'    Render = PdfPageRenderOptions.ScreenPreview,' \
+		'    Format = PdfImageOutputFormat.Png,' \
+		'    Encoding = PdfImageEncodingOptions.Fast,' \
+		'});' \
+		'await dispatcher.CompleteAsync();' \
+		'' \
+		'if (!File.Exists("page.png") || new FileInfo("page.png").Length == 0 ||' \
+		'    !File.Exists("page-async.png") || new FileInfo("page-async.png").Length == 0)' \
+		'{' \
+		'    throw new InvalidOperationException("Smoke test did not generate both page images.");' \
 		'}' > Program.cs; \
 	dotnet run --configuration Release
 
@@ -83,6 +96,9 @@ benchmark-session:
 
 benchmark-encoding:
 	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts --filter '*PngEncodingBenchmarks*'
+
+benchmark-dispatcher:
+	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts --filter '*PdfRenderDispatcher*'
 
 release-check: test pack inspect-package smoke-package
 

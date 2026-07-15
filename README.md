@@ -20,6 +20,7 @@ PdfiumRaster is a .NET Standard PDF-to-image library backed by PDFium. It focuse
 - Render grayscale or thresholded black-and-white images
 - Configure DPI, width, height, aspect ratio, rotation, background color, and anti-aliasing
 - Reuse an open document, loaded page, and render buffer with `PdfRenderSession`
+- Accept concurrent server requests with bounded backpressure and parallel image encoding
 - Select explicit screen-preview and fast-encoding presets without changing quality-oriented defaults
 - Native PDFium binaries delivered through NuGet runtime assets
 
@@ -121,6 +122,47 @@ byte firstBlue = session.RenderPage(
     callback: bitmap => bitmap.Pixels[0],
     options: options);
 ```
+
+## Concurrent Requests
+
+Share one `PdfRenderDispatcher` across requests when unrelated PDFs may arrive concurrently. It queues callers without
+blocking their request threads, serializes the PDFium stage, and runs completed image encodes on a bounded set of
+workers:
+
+```csharp
+using var dispatcher = new PdfRenderDispatcher(new PdfRenderDispatcherOptions
+{
+    QueueCapacity = 42,
+    EncodingConcurrency = 2,
+    QueueFullMode = PdfRenderQueueFullMode.Wait,
+});
+
+var options = new PdfImageConversionOptions
+{
+    Render = PdfPageRenderOptions.ScreenPreview,
+    Format = PdfImageOutputFormat.Png,
+    Encoding = PdfImageEncodingOptions.Fast,
+};
+
+await Task.WhenAll(
+    dispatcher.SavePageAsync("first.pdf", pageIndex: 0, "first.png", options),
+    dispatcher.SavePageAsync("second.pdf", pageIndex: 0, "second.png", options));
+
+await dispatcher.CompleteAsync();
+```
+
+`PdfRenderDispatcher` supports PDF paths, byte arrays, and streams, and can return an owned `PdfBitmap` or write an
+encoded image to a path or caller-owned stream. Options are snapshotted when submitted. Input byte arrays must not be
+modified, and input streams must remain usable until the returned task completes. Output streams remain open.
+
+PDFium calls are still serialized process-wide. The dispatcher improves request handling and can increase encoded
+image throughput; it does not run two PDFium renders simultaneously. Use a separately supervised process pool when
+true native parallelism or stronger isolation is required. Prefer `PdfRenderSession` when many pages come from one
+PDF, because the mixed-document dispatcher intentionally reopens each request.
+
+The default full-queue behavior waits asynchronously and honors cancellation. `PdfRenderQueueFullMode.Reject`
+instead faults excess submissions with `PdfRenderQueueFullException`, which applications can map to their overload
+response. Cancellation cannot interrupt PDFium or Skia calls already executing.
 
 ## Page Numbers
 

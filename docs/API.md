@@ -150,6 +150,55 @@ session.SavePage(pageIndex: 0, imageStream: output, options: new PdfImageConvers
 });
 ```
 
+## Concurrent Render Dispatcher
+
+`PdfRenderDispatcher` is the high-level API for concurrent requests involving unrelated PDFs. Share one dispatcher
+for the application lifetime instead of constructing one per request:
+
+```csharp
+using var dispatcher = new PdfRenderDispatcher(new PdfRenderDispatcherOptions
+{
+    QueueCapacity = 42,
+    EncodingConcurrency = 2,
+    QueueFullMode = PdfRenderQueueFullMode.Wait,
+});
+
+Task<PdfBitmap> bitmap = dispatcher.RenderPageAsync("input.pdf", pageIndex: 0);
+Task save = dispatcher.SavePageAsync("other.pdf", pageIndex: 0, "page.png", new PdfImageConversionOptions
+{
+    Render = PdfPageRenderOptions.ScreenPreview,
+    Format = PdfImageOutputFormat.Png,
+    Encoding = PdfImageEncodingOptions.Fast,
+});
+
+await Task.WhenAll(bitmap, save);
+await dispatcher.CompleteAsync();
+```
+
+`RenderPageAsync` and `SavePageAsync` have PDF input overloads for `string`, `byte[]`, and `Stream`.
+`SavePageAsync` writes to either an image path or a caller-owned output stream. All page indexes are zero-based.
+Returned bitmaps have independent managed pixel buffers. Output streams remain open.
+
+The bounded queue has two modes:
+
+- `Wait` asynchronously waits for capacity and is the default.
+- `Reject` faults a full-queue submission with `PdfRenderQueueFullException`.
+
+`CompleteAsync()` stops new submissions and drains accepted jobs. `CancelAsync()` cancels work that has not entered an
+uninterruptible stage and waits for active stages. `Dispose()` uses cancellation shutdown and waits synchronously.
+PDFium rendering and Skia encoding already in progress cannot be interrupted.
+
+Conversion options and their nested render/encoding options are copied at submission. PDF byte arrays are referenced,
+not copied, and must remain unchanged through completion. A PDF stream must remain usable and unmodified until its
+task completes; `leaveOpen: false` transfers disposal responsibility after the job is accepted. If submission is
+canceled while waiting for queue capacity, ownership does not transfer. Input and output cannot be the same stream.
+Do not write to an output stream or submit it to another concurrent job until its task completes.
+
+The dispatcher does not remove the process-wide native lock. PDF load/render operations remain serialized, while
+completed PNG, JPEG, WebP, or BMP writes may overlap up to `EncodingConcurrency`. At most that many rendered save
+buffers are retained by the pipeline. Encoded requests can therefore complete out of submission order. Use
+`PdfRenderSession` for repeated pages from one document and multiple supervised processes for true PDFium parallelism.
+
 ## Saving Images
 
 Save with an explicit format:

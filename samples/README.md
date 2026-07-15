@@ -107,6 +107,37 @@ page-0001.webp
 page-fast.png
 ```
 
+## Handle Concurrent Requests
+
+Share a bounded dispatcher across unrelated requests. This example waits asynchronously when 42 jobs are queued and
+allows two completed page bitmaps to be encoded at once:
+
+```csharp
+using PdfiumRaster;
+
+using var dispatcher = new PdfRenderDispatcher(new PdfRenderDispatcherOptions
+{
+    QueueCapacity = 42,
+    EncodingConcurrency = 2,
+});
+
+var options = new PdfImageConversionOptions
+{
+    Render = PdfPageRenderOptions.ScreenPreview,
+    Format = PdfImageOutputFormat.Png,
+    Encoding = PdfImageEncodingOptions.Fast,
+};
+
+await Task.WhenAll(
+    dispatcher.SavePageAsync("first.pdf", pageIndex: 0, "first.png", options),
+    dispatcher.SavePageAsync("second.pdf", pageIndex: 0, "second.png", options));
+
+await dispatcher.CompleteAsync();
+```
+
+PDFium loading and rendering remain serialized. Only encoding and output overlap. Use `PdfRenderSession` instead when
+requests repeatedly access one PDF, or supervised worker processes when native rendering must run in parallel.
+
 ## Load From Memory
 
 Render from bytes, streams, or Base64 when the PDF does not live on disk.

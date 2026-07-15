@@ -8,7 +8,7 @@
     <AssemblyName>PdfiumRaster</AssemblyName>
     <RootNamespace>PdfiumRaster</RootNamespace>
     <PackageId>PdfiumRaster</PackageId>
-    <VersionPrefix>0.2.0</VersionPrefix>
+    <VersionPrefix>0.3.0</VersionPrefix>
     <Authors>PdfiumRaster contributors</Authors>
     <Title>PdfiumRaster</Title>
     <Description>PDFium-backed .NET Standard library for rendering PDF pages to images.</Description>
@@ -37,6 +37,7 @@
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" PrivateAssets="analyzers" />
     <PackageReference Include="SkiaSharp.NativeAssets.macOS" PrivateAssets="analyzers" />
     <PackageReference Include="SkiaSharp.NativeAssets.Win32" PrivateAssets="analyzers" />
+    <PackageReference Include="System.Threading.Channels" />
   </ItemGroup>
 
 </Project>
