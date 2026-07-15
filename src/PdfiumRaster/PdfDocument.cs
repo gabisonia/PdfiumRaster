@@ -9,12 +9,18 @@ namespace PdfiumRaster;
 public sealed class PdfDocument : IDisposable
 {
     private IntPtr _handle;
+    private readonly int _pageCount;
     private GCHandle _pinnedBytes;
     private PdfStreamAccess? _streamAccess;
 
-    private PdfDocument(IntPtr handle, GCHandle pinnedBytes = default, PdfStreamAccess? streamAccess = null)
+    private PdfDocument(
+        IntPtr handle,
+        int pageCount,
+        GCHandle pinnedBytes = default,
+        PdfStreamAccess? streamAccess = null)
     {
         _handle = handle;
+        _pageCount = pageCount;
         _pinnedBytes = pinnedBytes;
         _streamAccess = streamAccess;
     }
@@ -27,7 +33,7 @@ public sealed class PdfDocument : IDisposable
         get
         {
             ThrowIfDisposed();
-            return PdfiumNative.FPDF_GetPageCount(_handle);
+            return _pageCount;
         }
     }
 
@@ -50,7 +56,7 @@ public sealed class PdfDocument : IDisposable
             throw PdfiumException.FromLastError($"Could not load PDF document '{path}'.");
         }
 
-        return new PdfDocument(handle);
+        return new PdfDocument(handle, PdfiumNative.FPDF_GetPageCount(handle));
     }
 
     /// <summary>
@@ -80,7 +86,7 @@ public sealed class PdfDocument : IDisposable
             throw PdfiumException.FromLastError("Could not load PDF document from memory.");
         }
 
-        return new PdfDocument(handle, pinnedBytes);
+        return new PdfDocument(handle, PdfiumNative.FPDF_GetPageCount(handle), pinnedBytes);
     }
 
     /// <summary>
@@ -134,7 +140,7 @@ public sealed class PdfDocument : IDisposable
                 throw PdfiumException.FromLastError("Could not load PDF document from stream.");
             }
 
-            return new PdfDocument(handle, streamAccess: streamAccess);
+            return new PdfDocument(handle, PdfiumNative.FPDF_GetPageCount(handle), streamAccess: streamAccess);
         }
         catch
         {

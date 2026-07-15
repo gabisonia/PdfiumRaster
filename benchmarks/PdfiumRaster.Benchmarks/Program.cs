@@ -11,8 +11,12 @@ public class PdfRenderingBenchmarks
     private string _outputDirectory = string.Empty;
     private byte[] _colorPixels = [];
     private PdfBitmap _renderIntoBitmap = null!;
+    private PdfBitmapLease _renderLease = null!;
     private PdfBitmap _colorModeBitmap = null!;
     private PdfImageConversionOptions _dpi144Options = null!;
+    private PdfiumLibrary _pdfium = null!;
+    private PdfDocument _document = null!;
+    private PdfPage _page = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -33,16 +37,22 @@ public class PdfRenderingBenchmarks
             Render = new PdfPageRenderOptions { Dpi = 144 },
         };
 
-        using var pdfium = PdfiumLibrary.Initialize();
-        using var document = PdfDocument.Load(_pdfPath);
-        using var page = document.LoadPage(0);
-        var (width, height) = _dpi144Options.Render.GetPixelSize(page.Width, page.Height);
+        _pdfium = PdfiumLibrary.Initialize();
+        _document = PdfDocument.Load(_pdfPath);
+        _page = _document.LoadPage(0);
+        var (width, height) = _dpi144Options.Render.GetPixelSize(_page.Width, _page.Height);
         _renderIntoBitmap = PdfBitmap.Create(width, height);
+        _renderLease = PdfBitmapLease.Rent(width, height, clear: false);
     }
 
     [GlobalCleanup]
     public void Cleanup()
     {
+        _renderLease.Dispose();
+        _page.Dispose();
+        _document.Dispose();
+        _pdfium.Dispose();
+
         if (Directory.Exists(_outputDirectory))
         {
             Directory.Delete(_outputDirectory, recursive: true);
@@ -67,6 +77,31 @@ public class PdfRenderingBenchmarks
         PdfImageConverter.RenderPageInto(_pdfPath, pageIndex: 0, _renderIntoBitmap, _dpi144Options);
 
         return _renderIntoBitmap.Width * _renderIntoBitmap.Height;
+    }
+
+    [Benchmark]
+    public int RenderPageIntoOpenDocument()
+    {
+        PdfImageConverter.RenderPageInto(_document, pageIndex: 0, _renderIntoBitmap, _dpi144Options);
+
+        return _renderIntoBitmap.Width * _renderIntoBitmap.Height;
+    }
+
+    [Benchmark]
+    public byte RenderOpenPageIntoLeasedBitmap()
+    {
+        _page.Render(_renderLease, _dpi144Options.Render);
+
+        return _renderLease.Bitmap.Pixels[0];
+    }
+
+    [Benchmark]
+    public byte RenderOpenDocumentIntoLeasedBitmap()
+    {
+        using var page = _document.LoadPage(0);
+        page.Render(_renderLease, _dpi144Options.Render);
+
+        return _renderLease.Bitmap.Pixels[0];
     }
 
     [Benchmark]

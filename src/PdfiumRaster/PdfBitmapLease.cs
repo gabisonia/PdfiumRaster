@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Runtime.InteropServices;
 
 namespace PdfiumRaster;
 
@@ -9,6 +10,9 @@ public sealed class PdfBitmapLease : IDisposable
 {
     private byte[]? _pixels;
     private readonly PdfBitmap _bitmap;
+    private PdfiumLibrary? _library;
+    private GCHandle _pinnedPixels;
+    private IntPtr _nativeBitmap;
 
     private PdfBitmapLease(PdfBitmap bitmap, byte[] pixels)
     {
@@ -68,6 +72,44 @@ public sealed class PdfBitmapLease : IDisposable
         return new PdfBitmapLease(new PdfBitmap(width, height, stride, pixels), pixels);
     }
 
+    internal IntPtr GetOrCreateNativeBitmap()
+    {
+        var pixels = _pixels;
+        if (pixels is null)
+        {
+            throw new ObjectDisposedException(GetType().FullName);
+        }
+
+        if (_nativeBitmap != IntPtr.Zero)
+        {
+            return _nativeBitmap;
+        }
+
+        try
+        {
+            _library = PdfiumLibrary.Initialize();
+            _pinnedPixels = GCHandle.Alloc(pixels, GCHandleType.Pinned);
+            _nativeBitmap = PdfiumNative.FPDFBitmap_CreateEx(
+                _bitmap.Width,
+                _bitmap.Height,
+                PdfiumNative.BitmapFormatBgra,
+                _pinnedPixels.AddrOfPinnedObject(),
+                _bitmap.Stride);
+
+            if (_nativeBitmap == IntPtr.Zero)
+            {
+                throw PdfiumException.FromLastError("Could not create reusable PDFium bitmap.");
+            }
+
+            return _nativeBitmap;
+        }
+        catch
+        {
+            ReleaseNativeBitmap();
+            throw;
+        }
+    }
+
     /// <summary>
     /// Returns the leased pixel buffer to the shared array pool.
     /// </summary>
@@ -80,6 +122,42 @@ public sealed class PdfBitmapLease : IDisposable
         }
 
         _pixels = null;
-        ArrayPool<byte>.Shared.Return(pixels);
+
+        try
+        {
+            ReleaseNativeBitmap();
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(pixels);
+        }
+    }
+
+    private void ReleaseNativeBitmap()
+    {
+        try
+        {
+            if (_nativeBitmap != IntPtr.Zero)
+            {
+                PdfiumNative.FPDFBitmap_Destroy(_nativeBitmap);
+            }
+        }
+        finally
+        {
+            _nativeBitmap = IntPtr.Zero;
+
+            try
+            {
+                if (_pinnedPixels.IsAllocated)
+                {
+                    _pinnedPixels.Free();
+                }
+            }
+            finally
+            {
+                _library?.Dispose();
+                _library = null;
+            }
+        }
     }
 }

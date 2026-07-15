@@ -4,6 +4,8 @@ namespace PdfiumRaster;
 
 internal static partial class PdfiumNative
 {
+    internal const int BitmapFormatBgra = 4;
+
     private static readonly string SyncRoot = string.Intern("PdfiumRaster.PdfiumNative.SyncRoot");
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -154,6 +156,36 @@ internal static partial class PdfiumNative
     {
         lock (SyncRoot)
         {
+            Imports.FPDF_RenderPageBitmap(bitmap, page, startX, startY, sizeX, sizeY, rotate, flags);
+        }
+    }
+
+    internal static void FPDFBitmap_FillAndRender(
+        IntPtr bitmap,
+        IntPtr page,
+        int bitmapWidth,
+        int bitmapHeight,
+        int startX,
+        int startY,
+        int sizeX,
+        int sizeY,
+        int rotate,
+        PdfRenderFlags flags,
+        uint? backgroundColor)
+    {
+        lock (SyncRoot)
+        {
+            if (backgroundColor.HasValue)
+            {
+                Imports.FPDFBitmap_FillRect(
+                    bitmap,
+                    0,
+                    0,
+                    bitmapWidth,
+                    bitmapHeight,
+                    backgroundColor.Value);
+            }
+
             Imports.FPDF_RenderPageBitmap(bitmap, page, startX, startY, sizeX, sizeY, rotate, flags);
         }
     }

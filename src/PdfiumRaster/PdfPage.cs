@@ -7,9 +7,9 @@ namespace PdfiumRaster;
 /// </summary>
 public sealed class PdfPage : IDisposable
 {
-    private const int BitmapFormatBgra = 4;
-
     private IntPtr _handle;
+    private double? _width;
+    private double? _height;
 
     internal PdfPage(IntPtr handle)
     {
@@ -24,7 +24,8 @@ public sealed class PdfPage : IDisposable
         get
         {
             ThrowIfDisposed();
-            return PdfiumNative.FPDF_GetPageWidthF(_handle);
+            EnsureDimensions();
+            return _width!.Value;
         }
     }
 
@@ -36,7 +37,8 @@ public sealed class PdfPage : IDisposable
         get
         {
             ThrowIfDisposed();
-            return PdfiumNative.FPDF_GetPageHeightF(_handle);
+            EnsureDimensions();
+            return _height!.Value;
         }
     }
 
@@ -115,6 +117,48 @@ public sealed class PdfPage : IDisposable
     }
 
     /// <summary>
+    /// Renders the page into a pooled bitmap lease while reusing its pinned native PDFium bitmap.
+    /// </summary>
+    /// <param name="bitmapLease">Destination lease whose dimensions must match the configured render size.</param>
+    /// <param name="options">Optional render options.</param>
+    /// <remarks>
+    /// Repeated calls with the same lease avoid recreating and repinning the native bitmap. The lease retains a PDFium
+    /// library initialization reference until it is disposed. Dispose the lease after all rendering and image encoding
+    /// using its bitmap have completed.
+    /// </remarks>
+    public void Render(PdfBitmapLease bitmapLease, PdfPageRenderOptions? options = null)
+    {
+        ThrowIfDisposed();
+        if (bitmapLease is null)
+        {
+            throw new ArgumentNullException(nameof(bitmapLease));
+        }
+
+        options ??= new PdfPageRenderOptions();
+        var bitmap = bitmapLease.Bitmap;
+        var (width, height) = options.GetPixelSize(Width, Height);
+
+        if (bitmap.Width != width || bitmap.Height != height)
+        {
+            throw new ArgumentException(
+                $"Destination bitmap lease must be {width}x{height} pixels for the requested render options.",
+                nameof(bitmapLease));
+        }
+
+        var nativeBitmap = bitmapLease.GetOrCreateNativeBitmap();
+        RenderNativeBitmap(
+            nativeBitmap,
+            bitmap,
+            0,
+            0,
+            width,
+            height,
+            options.Rotation,
+            options.GetRenderFlags(),
+            options.FillBackground ? options.BackgroundColor : null);
+    }
+
+    /// <summary>
     /// Renders the page into an existing bitmap.
     /// </summary>
     /// <param name="bitmap">Destination bitmap.</param>
@@ -163,7 +207,7 @@ public sealed class PdfPage : IDisposable
             var nativeBitmap = PdfiumNative.FPDFBitmap_CreateEx(
                 bitmap.Width,
                 bitmap.Height,
-                BitmapFormatBgra,
+                PdfiumNative.BitmapFormatBgra,
                 pinnedPixels.AddrOfPinnedObject(),
                 bitmap.Stride);
 
@@ -174,14 +218,16 @@ public sealed class PdfPage : IDisposable
 
             try
             {
-                if (backgroundColor.HasValue)
-                {
-                    PdfiumNative.FPDFBitmap_FillRect(nativeBitmap, 0, 0, bitmap.Width, bitmap.Height,
-                        backgroundColor.Value);
-                }
-
-                PdfiumNative.FPDF_RenderPageBitmap(nativeBitmap, _handle, startX, startY, sizeX, sizeY, (int)rotate,
-                    flags);
+                RenderNativeBitmap(
+                    nativeBitmap,
+                    bitmap,
+                    startX,
+                    startY,
+                    sizeX,
+                    sizeY,
+                    rotate,
+                    flags,
+                    backgroundColor);
             }
             finally
             {
@@ -212,5 +258,41 @@ public sealed class PdfPage : IDisposable
         {
             throw new ObjectDisposedException(GetType().FullName);
         }
+    }
+
+    private void EnsureDimensions()
+    {
+        if (_width.HasValue)
+        {
+            return;
+        }
+
+        _width = PdfiumNative.FPDF_GetPageWidthF(_handle);
+        _height = PdfiumNative.FPDF_GetPageHeightF(_handle);
+    }
+
+    private void RenderNativeBitmap(
+        IntPtr nativeBitmap,
+        PdfBitmap bitmap,
+        int startX,
+        int startY,
+        int sizeX,
+        int sizeY,
+        PdfPageRotation rotate,
+        PdfRenderFlags flags,
+        uint? backgroundColor)
+    {
+        PdfiumNative.FPDFBitmap_FillAndRender(
+            nativeBitmap,
+            _handle,
+            bitmap.Width,
+            bitmap.Height,
+            startX,
+            startY,
+            sizeX,
+            sizeY,
+            (int)rotate,
+            flags,
+            backgroundColor);
     }
 }

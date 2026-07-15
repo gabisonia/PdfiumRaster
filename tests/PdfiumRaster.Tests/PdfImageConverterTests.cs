@@ -231,6 +231,52 @@ public sealed class PdfImageConverterTests
     }
 
     [Fact]
+    public void RenderPage_open_document_avoids_reopening_document()
+    {
+        using var pdfium = PdfiumLibrary.Initialize();
+        using var document = PdfDocument.Load(GetTestPdfPath("TestAssets/smoke.pdf"));
+
+        var bitmap = PdfImageConverter.RenderPage(
+            document,
+            pageIndex: 0,
+            new PdfImageConversionOptions
+            {
+                Render = new PdfPageRenderOptions { Dpi = 72 },
+            });
+
+        Assert.Contains(bitmap.Pixels, pixel => pixel != 0);
+    }
+
+    [Fact]
+    public void RenderPageInto_open_document_reuses_destination()
+    {
+        using var pdfium = PdfiumLibrary.Initialize();
+        using var document = PdfDocument.Load(GetTestPdfPath("TestAssets/smoke.pdf"));
+        using var page = document.LoadPage(0);
+
+        var options = new PdfImageConversionOptions
+        {
+            Render = new PdfPageRenderOptions { Dpi = 72 },
+        };
+        var (width, height) = options.Render.GetPixelSize(page.Width, page.Height);
+        var bitmap = PdfBitmap.Create(width, height);
+
+        PdfImageConverter.RenderPageInto(document, pageIndex: 0, bitmap, options);
+
+        Assert.Contains(bitmap.Pixels, pixel => pixel != 0);
+    }
+
+    [Fact]
+    public void RenderPage_open_document_rejects_null_document()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            PdfImageConverter.RenderPage(
+                (PdfDocument)null!,
+                pageIndex: 0,
+                new PdfImageConversionOptions()));
+    }
+
+    [Fact]
     public void RenderPageNumberInto_uses_one_based_page_number()
     {
         var pdfPath = GetTestPdfPath("TestAssets/axf-annotation-1.pdf");

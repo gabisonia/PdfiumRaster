@@ -197,8 +197,8 @@ For repeated same-size rendering, rent a pooled bitmap and dispose the lease whe
 var options = new PdfPageRenderOptions { Dpi = 144 };
 var (width, height) = options.GetPixelSize(page.Width, page.Height);
 
-using var lease = PdfBitmapLease.Rent(width, height);
-page.Render(lease.Bitmap, options);
+using var lease = PdfBitmapLease.Rent(width, height, clear: false);
+page.Render(lease, options);
 
 PdfImageWriter.SavePng(lease.Bitmap, "page.png");
 ```
@@ -213,6 +213,23 @@ PdfImageConverter.RenderPageInto("sample.pdf", pageIndex: 0, lease.Bitmap, new P
 ```
 
 Do not keep `lease.Bitmap` or `lease.Bitmap.Pixels` after disposing the lease. Save helpers reuse pooled buffers internally where possible.
+
+When rendering several pages individually, keep the PDF open and use the document-scoped overloads:
+
+```csharp
+using var pdfium = PdfiumLibrary.Initialize();
+using var document = PdfDocument.Load("sample.pdf");
+var options = new PdfPageRenderOptions { Dpi = 96 };
+
+for (var pageIndex = 0; pageIndex < document.PageCount; pageIndex++)
+{
+    var bitmap = PdfImageConverter.RenderPage(document, pageIndex, options);
+    PdfImageWriter.SaveJpeg(bitmap, $"page-{pageIndex + 1:D4}.jpg", quality: 85);
+}
+```
+
+Rendering time and memory grow with pixel count. The default is 300 DPI for high-resolution output; use 72 or 96 DPI
+for thumbnails and screen previews when that resolution is sufficient.
 
 ## Threading
 

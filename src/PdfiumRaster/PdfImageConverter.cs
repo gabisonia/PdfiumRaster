@@ -161,12 +161,7 @@ public static class PdfImageConverter
 
         using var library = PdfiumLibrary.Initialize();
         using var document = PdfDocument.Load(pdfPath, password);
-        using var page = document.LoadPage(pageIndex);
-
-        var bitmap = page.Render(GetRenderOptions(options));
-        ApplyConversionColorMode(bitmap, options);
-
-        return bitmap;
+        return RenderPage(document, pageIndex, options);
     }
 
     /// <summary>
@@ -187,12 +182,7 @@ public static class PdfImageConverter
 
         using var library = PdfiumLibrary.Initialize();
         using var document = PdfDocument.Load(pdfBytes, password);
-        using var page = document.LoadPage(pageIndex);
-
-        var bitmap = page.Render(GetRenderOptions(options));
-        ApplyConversionColorMode(bitmap, options);
-
-        return bitmap;
+        return RenderPage(document, pageIndex, options);
     }
 
     /// <summary>
@@ -215,6 +205,55 @@ public static class PdfImageConverter
 
         using var library = PdfiumLibrary.Initialize();
         using var document = PdfDocument.Load(pdfStream, leaveOpen, password);
+        return RenderPage(document, pageIndex, options);
+    }
+
+    /// <summary>
+    /// Renders a zero-based page from an already open document.
+    /// </summary>
+    /// <param name="document">Open document owned by the caller.</param>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <param name="options">Optional page render options.</param>
+    /// <returns>The rendered page bitmap.</returns>
+    /// <remarks>
+    /// Use this overload for repeated rendering to avoid reopening the document. The caller must keep both the
+    /// document and its <see cref="PdfiumLibrary" /> initialization reference alive for the duration of the call.
+    /// The returned bitmap owns its full managed pixel buffer.
+    /// </remarks>
+    public static PdfBitmap RenderPage(
+        PdfDocument document,
+        int pageIndex,
+        PdfPageRenderOptions? options = null)
+    {
+        return RenderPage(document, pageIndex, new PdfImageConversionOptions
+        {
+            Render = options ?? new PdfPageRenderOptions(),
+        });
+    }
+
+    /// <summary>
+    /// Renders a zero-based page from an already open document using conversion options.
+    /// </summary>
+    /// <param name="document">Open document owned by the caller.</param>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <returns>The rendered page bitmap.</returns>
+    /// <remarks>
+    /// Use this overload for repeated rendering to avoid reopening the document. The caller must keep both the
+    /// document and its <see cref="PdfiumLibrary" /> initialization reference alive for the duration of the call.
+    /// The returned bitmap owns its full managed pixel buffer.
+    /// </remarks>
+    public static PdfBitmap RenderPage(
+        PdfDocument document,
+        int pageIndex,
+        PdfImageConversionOptions? options)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        options ??= new PdfImageConversionOptions();
         using var page = document.LoadPage(pageIndex);
 
         var bitmap = page.Render(GetRenderOptions(options));
@@ -247,8 +286,38 @@ public static class PdfImageConverter
 
         using var library = PdfiumLibrary.Initialize();
         using var document = PdfDocument.Load(pdfPath, password);
-        using var page = document.LoadPage(pageIndex);
+        RenderPageInto(document, pageIndex, destination, options);
+    }
 
+    /// <summary>
+    /// Renders a zero-based page from an already open document into an existing bitmap.
+    /// </summary>
+    /// <param name="document">Open document owned by the caller.</param>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <param name="destination">Destination bitmap whose dimensions must match the configured render size in pixels.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <remarks>
+    /// Use this overload for repeated rendering to avoid reopening the document and reallocating the destination
+    /// pixels. The caller must keep the document and its <see cref="PdfiumLibrary" /> initialization reference alive.
+    /// </remarks>
+    public static void RenderPageInto(
+        PdfDocument document,
+        int pageIndex,
+        PdfBitmap destination,
+        PdfImageConversionOptions? options = null)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        if (destination is null)
+        {
+            throw new ArgumentNullException(nameof(destination));
+        }
+
+        options ??= new PdfImageConversionOptions();
+        using var page = document.LoadPage(pageIndex);
         RenderPageInto(page, destination, options);
     }
 
@@ -292,6 +361,21 @@ public static class PdfImageConverter
     }
 
     /// <summary>
+    /// Renders a one-based page number from an already open document.
+    /// </summary>
+    /// <param name="document">Open document owned by the caller.</param>
+    /// <param name="pageNumber">One-based page number.</param>
+    /// <param name="options">Optional conversion options.</param>
+    /// <returns>The rendered page bitmap.</returns>
+    public static PdfBitmap RenderPageNumber(
+        PdfDocument document,
+        int pageNumber,
+        PdfImageConversionOptions? options = null)
+    {
+        return RenderPage(document, ToPageIndex(pageNumber), options);
+    }
+
+    /// <summary>
     /// Renders a one-based page number from a PDF file into an existing bitmap.
     /// </summary>
     /// <param name="pdfPath">Path to the PDF file.</param>
@@ -307,6 +391,22 @@ public static class PdfImageConverter
         string? password = null)
     {
         RenderPageInto(pdfPath, ToPageIndex(pageNumber), destination, options, password);
+    }
+
+    /// <summary>
+    /// Renders a one-based page number from an already open document into an existing bitmap.
+    /// </summary>
+    /// <param name="document">Open document owned by the caller.</param>
+    /// <param name="pageNumber">One-based page number.</param>
+    /// <param name="destination">Destination bitmap whose dimensions must match the configured render size in pixels.</param>
+    /// <param name="options">Optional conversion options.</param>
+    public static void RenderPageNumberInto(
+        PdfDocument document,
+        int pageNumber,
+        PdfBitmap destination,
+        PdfImageConversionOptions? options = null)
+    {
+        RenderPageInto(document, ToPageIndex(pageNumber), destination, options);
     }
 
     /// <summary>
@@ -1062,15 +1162,7 @@ public static class PdfImageConverter
             ClearPixelRegion(bitmap);
         }
 
-        page.Render(
-            bitmap,
-            0,
-            0,
-            bitmap.Width,
-            bitmap.Height,
-            renderOptions.Rotation,
-            renderOptions.GetRenderFlags(),
-            renderOptions.FillBackground ? renderOptions.BackgroundColor : null);
+        page.Render(bitmapLease, renderOptions);
         ApplyConversionColorMode(bitmap, options);
 
         return bitmap;

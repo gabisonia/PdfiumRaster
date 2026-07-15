@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="PDFiumCore" />
   </ItemGroup>
 
   <ItemGroup>

@@ -65,9 +65,11 @@ PdfImageConverter.RenderPage(string pdfPath, int pageIndex);
 PdfImageConverter.RenderPage(byte[] pdfBytes, int pageIndex);
 PdfImageConverter.RenderPage(Stream pdfStream, int pageIndex);
 PdfImageConverter.RenderPageFromBase64(string pdfBase64, int pageIndex);
+PdfImageConverter.RenderPage(PdfDocument document, int pageIndex);
 
 PdfImageConverter.RenderPageNumber(string pdfPath, int pageNumber);
 PdfImageConverter.RenderPageNumber(byte[] pdfBytes, int pageNumber);
+PdfImageConverter.RenderPageNumber(PdfDocument document, int pageNumber);
 ```
 
 Render a path-based page into an existing bitmap:
@@ -75,6 +77,8 @@ Render a path-based page into an existing bitmap:
 ```csharp
 PdfImageConverter.RenderPageInto(string pdfPath, int pageIndex, PdfBitmap destination);
 PdfImageConverter.RenderPageNumberInto(string pdfPath, int pageNumber, PdfBitmap destination);
+PdfImageConverter.RenderPageInto(PdfDocument document, int pageIndex, PdfBitmap destination);
+PdfImageConverter.RenderPageNumberInto(PdfDocument document, int pageNumber, PdfBitmap destination);
 ```
 
 Render selected zero-based pages:
@@ -228,6 +232,22 @@ var reusable = PdfBitmap.Create(width, height);
 page.Render(reusable, render);
 ```
 
+For repeated pages from one PDF, keep the document open and use the document-scoped facade overload. This avoids
+reinitializing PDFium and reopening the file for each page:
+
+```csharp
+using var pdfium = PdfiumLibrary.Initialize();
+using var document = PdfDocument.Load("input.pdf");
+
+var render = new PdfPageRenderOptions { Dpi = 144 };
+
+for (var pageIndex = 0; pageIndex < document.PageCount; pageIndex++)
+{
+    PdfBitmap bitmap = PdfImageConverter.RenderPage(document, pageIndex, render);
+    PdfImageWriter.SaveJpeg(bitmap, $"page-{pageIndex + 1:D4}.jpg", quality: 85);
+}
+```
+
 The converter facade also supports path-based rendering into an existing bitmap:
 
 ```csharp
@@ -239,13 +259,28 @@ PdfImageConverter.RenderPageInto("input.pdf", pageIndex: 0, reusable, options);
 For repeated rendering where the bitmap does not need to outlive the render operation, use a pooled bitmap lease:
 
 ```csharp
-using var lease = PdfBitmapLease.Rent(width, height);
+using var lease = PdfBitmapLease.Rent(width, height, clear: false);
 
-page.Render(lease.Bitmap, render);
+page.Render(lease, render);
 PdfImageWriter.SavePng(lease.Bitmap, "page.png");
 ```
 
-`PdfBitmapLease` returns its pixel buffer to the shared array pool when disposed. Do not retain `lease.Bitmap` or `lease.Bitmap.Pixels` after disposal. The pooled pixel array may be larger than `Stride * Height`; image writers use the bitmap dimensions and stride.
+The `PdfPage.Render(PdfBitmapLease, ...)` overload pins the pooled pixels and creates a native PDFium bitmap on its
+first call, then reuses both on subsequent calls. `PdfBitmapLease` keeps PDFium initialized until it destroys that
+native bitmap and returns its pixel buffer to the shared array pool. Do not retain `lease.Bitmap` or
+`lease.Bitmap.Pixels` after disposal. The pooled pixel array may be larger than `Stride * Height`; image writers use
+the bitmap dimensions and stride.
+
+Rendering cost grows approximately with pixel count. For previews, thumbnails, and other screen-oriented output,
+explicitly select an appropriate DPI instead of the 300 DPI print-oriented default:
+
+```csharp
+var preview = new PdfPageRenderOptions
+{
+    Dpi = 96,
+    Flags = PdfRenderFlags.Annot,
+};
+```
 
 ## Writing Existing Bitmaps
 
