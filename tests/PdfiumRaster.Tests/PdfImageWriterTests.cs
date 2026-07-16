@@ -75,6 +75,18 @@ public sealed class PdfImageWriterTests
         Assert.Equal(bitmap.Pixels, bytes[54..]);
     }
 
+    [Fact]
+    public void WriteBmp_writes_header_and_pixels_in_two_contiguous_writes()
+    {
+        var bitmap = PdfBitmap.Create(width: 8, height: 4);
+        using var stream = new WriteCountingStream();
+
+        PdfImageWriter.WriteBmp(bitmap, stream);
+
+        Assert.Equal(2, stream.WriteCount);
+        Assert.Equal(54 + bitmap.Stride * bitmap.Height, stream.Length);
+    }
+
     private static int ReadInt32(byte[] bytes, int offset)
     {
         return bytes[offset]
@@ -95,5 +107,16 @@ public sealed class PdfImageWriterTests
             height: 1,
             stride: 8,
             pixels: [0x10, 0x20, 0x30, 0xFF, 0x40, 0x50, 0x60, 0xFF]);
+    }
+
+    private sealed class WriteCountingStream : MemoryStream
+    {
+        internal int WriteCount { get; private set; }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            WriteCount++;
+            base.Write(buffer, offset, count);
+        }
     }
 }

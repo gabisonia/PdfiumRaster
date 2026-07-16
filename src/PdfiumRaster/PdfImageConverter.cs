@@ -646,6 +646,11 @@ public static class PdfImageConverter
     /// <param name="options">Optional conversion options.</param>
     /// <param name="password">Optional document password.</param>
     /// <returns>The number of pages saved.</returns>
+    /// <remarks>
+    /// Multi-page PNG, JPEG, and WebP exports overlap serialized PDFium rendering with encoding and retain at most two
+    /// full rendered page buffers. BMP and single-page exports use one buffer and run sequentially. If an operation
+    /// fails, files completed before the failure remain in the output directory.
+    /// </remarks>
     public static int SaveDocument(
         string pdfPath,
         string outputDirectory,
@@ -669,6 +674,11 @@ public static class PdfImageConverter
     /// <param name="options">Optional conversion options.</param>
     /// <param name="password">Optional document password.</param>
     /// <returns>The number of pages saved.</returns>
+    /// <remarks>
+    /// Multi-page PNG, JPEG, and WebP exports overlap serialized PDFium rendering with encoding and retain at most two
+    /// full rendered page buffers. BMP and single-page exports use one buffer and run sequentially. Generated file
+    /// names remain deterministic even though compressed files may finish encoding out of order.
+    /// </remarks>
     public static int SavePages(
         string pdfPath,
         IEnumerable<int> pageIndexes,
@@ -698,6 +708,11 @@ public static class PdfImageConverter
     /// <param name="options">Optional conversion options.</param>
     /// <param name="password">Optional document password.</param>
     /// <returns>The number of pages saved.</returns>
+    /// <remarks>
+    /// Multi-page PNG, JPEG, and WebP exports overlap serialized PDFium rendering with encoding and retain at most two
+    /// full rendered page buffers. BMP and single-page exports use one buffer and run sequentially. Generated file
+    /// names remain deterministic even though compressed files may finish encoding out of order.
+    /// </remarks>
     public static int SavePageNumbers(
         string pdfPath,
         IEnumerable<int> pageNumbers,
@@ -1104,29 +1119,16 @@ public static class PdfImageConverter
         Directory.CreateDirectory(outputDirectory);
 
         options ??= new PdfImageConversionOptions();
-        var renderOptions = GetRenderOptions(options);
-        var extension = GetExtension(options.Format);
         var pageCount = document.PageCount;
-        PdfBitmapLease? bitmapLease = null;
-
-        try
-        {
-            for (var pageIndex = 0; pageIndex < pageCount; pageIndex++)
-            {
-                using var page = document.LoadPage(pageIndex);
-                bitmapLease = EnsureBitmapLease(bitmapLease, page, renderOptions);
-                var bitmap = RenderToLease(page, bitmapLease, renderOptions, options);
-                var imagePath = Path.Combine(outputDirectory, $"{fileNamePrefix}-{pageIndex + 1:D4}{extension}");
-
-                SaveBitmap(bitmap, imagePath, options.Format, GetEncodingOptions(options));
-            }
-        }
-        finally
-        {
-            bitmapLease?.Dispose();
-        }
-
-        return pageCount;
+        return SavePagesCore(
+            document,
+            Enumerable.Range(0, pageCount),
+            pageCount,
+            outputDirectory,
+            fileNamePrefix,
+            options,
+            usePipelinedEncoding: ShouldUsePipelinedEncoding(options.Format, pageCount),
+            SaveBitmap);
     }
 
     private static int SavePages(
@@ -1140,22 +1142,84 @@ public static class PdfImageConverter
         Directory.CreateDirectory(outputDirectory);
 
         options ??= new PdfImageConversionOptions();
+        var selectedPageIndexes = pageIndexes.OrderBy(page => page).Distinct().ToArray();
+        return SavePagesCore(
+            document,
+            selectedPageIndexes,
+            selectedPageIndexes.Length,
+            outputDirectory,
+            fileNamePrefix,
+            options,
+            usePipelinedEncoding: ShouldUsePipelinedEncoding(options.Format, selectedPageIndexes.Length),
+            SaveBitmap);
+    }
+
+    internal static int SavePagesCore(
+        PdfDocument document,
+        IEnumerable<int> pageIndexes,
+        int pageCount,
+        string outputDirectory,
+        string fileNamePrefix,
+        PdfImageConversionOptions options,
+        bool usePipelinedEncoding,
+        PdfBatchBitmapEncoder encoder)
+    {
         var renderOptions = GetRenderOptions(options);
+        var encodingOptions = GetEncodingOptions(options);
         var extension = GetExtension(options.Format);
-        var savedCount = 0;
+
+        if (usePipelinedEncoding)
+        {
+            return SavePagesPipelined(
+                document,
+                pageIndexes,
+                pageCount,
+                outputDirectory,
+                fileNamePrefix,
+                options,
+                renderOptions,
+                encodingOptions,
+                extension,
+                encoder);
+        }
+
+        return SavePagesSequential(
+            document,
+            pageIndexes,
+            pageCount,
+            outputDirectory,
+            fileNamePrefix,
+            options,
+            renderOptions,
+            encodingOptions,
+            extension,
+            encoder);
+    }
+
+    private static int SavePagesSequential(
+        PdfDocument document,
+        IEnumerable<int> pageIndexes,
+        int pageCount,
+        string outputDirectory,
+        string fileNamePrefix,
+        PdfImageConversionOptions options,
+        PdfPageRenderOptions renderOptions,
+        PdfImageEncodingOptions encodingOptions,
+        string extension,
+        PdfBatchBitmapEncoder encoder)
+    {
         PdfBitmapLease? bitmapLease = null;
 
         try
         {
-            foreach (var pageIndex in pageIndexes.OrderBy(page => page).Distinct())
+            foreach (var pageIndex in pageIndexes)
             {
                 using var page = document.LoadPage(pageIndex);
                 bitmapLease = EnsureBitmapLease(bitmapLease, page, renderOptions);
                 var bitmap = RenderToLease(page, bitmapLease, renderOptions, options);
                 var imagePath = Path.Combine(outputDirectory, $"{fileNamePrefix}-{pageIndex + 1:D4}{extension}");
 
-                SaveBitmap(bitmap, imagePath, options.Format, GetEncodingOptions(options));
-                savedCount++;
+                encoder(bitmap, imagePath, options.Format, encodingOptions);
             }
         }
         finally
@@ -1163,7 +1227,50 @@ public static class PdfImageConverter
             bitmapLease?.Dispose();
         }
 
-        return savedCount;
+        return pageCount;
+    }
+
+    private static int SavePagesPipelined(
+        PdfDocument document,
+        IEnumerable<int> pageIndexes,
+        int pageCount,
+        string outputDirectory,
+        string fileNamePrefix,
+        PdfImageConversionOptions options,
+        PdfPageRenderOptions renderOptions,
+        PdfImageEncodingOptions encodingOptions,
+        string extension,
+        PdfBatchBitmapEncoder encoder)
+    {
+        using var pipeline = new PdfBatchSavePipeline(encoder);
+
+        foreach (var pageIndex in pageIndexes)
+        {
+            var slot = pipeline.AcquireSlot();
+            try
+            {
+                using var page = document.LoadPage(pageIndex);
+                var bitmapLease = slot.EnsureLease(page, renderOptions);
+                RenderToLease(page, bitmapLease, renderOptions, options);
+                var imagePath = Path.Combine(outputDirectory, $"{fileNamePrefix}-{pageIndex + 1:D4}{extension}");
+
+                pipeline.Queue(slot, imagePath, options.Format, encodingOptions);
+            }
+            catch
+            {
+                pipeline.ReturnSlot(slot);
+                throw;
+            }
+        }
+
+        pipeline.Complete();
+        return pageCount;
+    }
+
+    private static bool ShouldUsePipelinedEncoding(PdfImageOutputFormat format, int pageCount)
+    {
+        return pageCount >= 2 && format is PdfImageOutputFormat.Png or PdfImageOutputFormat.Jpeg or
+            PdfImageOutputFormat.Webp;
     }
 
     internal static PdfBitmapLease EnsureBitmapLease(

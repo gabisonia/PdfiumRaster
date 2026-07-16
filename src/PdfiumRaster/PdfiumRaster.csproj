@@ -40,4 +40,9 @@
     <PackageReference Include="System.Threading.Channels" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="PdfiumRaster.Benchmarks" />
+    <InternalsVisibleTo Include="PdfiumRaster.Tests" />
+  </ItemGroup>
+
 </Project>

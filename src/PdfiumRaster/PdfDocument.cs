@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Runtime.InteropServices;
 
 namespace PdfiumRaster;
@@ -205,7 +204,7 @@ public sealed class PdfDocument : IDisposable
     {
         private readonly Stream _stream;
         private readonly bool _leaveOpen;
-        private readonly object _syncRoot = new();
+        private readonly PdfStreamBlockReader _blockReader;
         private readonly PdfiumNative.GetBlock32Callback _getBlock32;
         private readonly PdfiumNative.GetBlock64Callback _getBlock64;
         private PdfiumNative.FileAccess32 _fileAccess32;
@@ -218,6 +217,7 @@ public sealed class PdfDocument : IDisposable
         {
             _stream = stream;
             _leaveOpen = leaveOpen;
+            _blockReader = new PdfStreamBlockReader(stream);
             _getBlock32 = ReadBlock32;
             _getBlock64 = ReadBlock64;
             _stateHandle = GCHandle.Alloc(this);
@@ -283,6 +283,8 @@ public sealed class PdfDocument : IDisposable
                 _fileAccessPointer = IntPtr.Zero;
             }
 
+            _blockReader.Dispose();
+
             if (!_leaveOpen)
             {
                 _stream.Dispose();
@@ -326,34 +328,7 @@ public sealed class PdfDocument : IDisposable
                 return false;
             }
 
-            var bytes = ArrayPool<byte>.Shared.Rent(size);
-            var totalRead = 0;
-
-            try
-            {
-                lock (_syncRoot)
-                {
-                    _stream.Position = checked((long)position);
-
-                    while (totalRead < size)
-                    {
-                        var read = _stream.Read(bytes, totalRead, size - totalRead);
-                        if (read == 0)
-                        {
-                            return false;
-                        }
-
-                        totalRead += read;
-                    }
-                }
-
-                Marshal.Copy(bytes, 0, buffer, size);
-                return true;
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(bytes);
-            }
+            return _blockReader.Read(position, size, buffer);
         }
     }
 }

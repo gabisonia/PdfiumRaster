@@ -6,7 +6,7 @@ ARTIFACTS_DIR := artifacts
 PACKAGE_VERSION := 0.3.0
 PACKAGE := $(ARTIFACTS_DIR)/PdfiumRaster.$(PACKAGE_VERSION).nupkg
 
-.PHONY: help restore build test test-local pack inspect-package smoke-package benchmark benchmark-compare benchmark-session benchmark-encoding benchmark-dispatcher release-check clean
+.PHONY: help restore build test test-local pack inspect-package smoke-package benchmark benchmark-compare benchmark-session benchmark-encoding benchmark-dispatcher benchmark-bmp benchmark-pipeline release-check clean
 
 help:
 	@printf '%s\n' \
@@ -23,6 +23,8 @@ help:
 		'  make benchmark-session Compare legacy and reusable session rendering' \
 		'  make benchmark-encoding Compare PNG compression levels' \
 		'  make benchmark-dispatcher Compare sequential and concurrent dispatcher batches' \
+		'  make benchmark-bmp     Compare row-based and contiguous BMP output' \
+		'  make benchmark-pipeline Compare sequential and pipelined document export' \
 		'  make release-check    Run tests, pack, inspect, and package smoke test' \
 		'  make clean            Remove build and package outputs'
 
@@ -99,6 +101,12 @@ benchmark-encoding:
 
 benchmark-dispatcher:
 	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts --filter '*PdfRenderDispatcher*'
+
+benchmark-bmp:
+	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts --filter '*BmpWriterBenchmarks*'
+
+benchmark-pipeline:
+	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts --filter '*PdfDocumentPipelineBenchmarks*'
 
 release-check: test pack inspect-package smoke-package
 

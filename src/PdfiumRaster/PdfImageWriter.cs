@@ -199,10 +199,7 @@ public static class PdfImageWriter
 
         stream.Write(header, 0, header.Length);
 
-        for (var row = 0; row < bitmap.Height; row++)
-        {
-            stream.Write(bitmap.Pixels, row * bitmap.Stride, bitmap.Stride);
-        }
+        stream.Write(bitmap.Pixels, 0, pixelDataSize);
     }
 
     private static void WriteInt32(byte[] buffer, int offset, int value)

@@ -243,6 +243,11 @@ page-0003.bmp
 the operation. Single-page path helpers reopen the PDF on every call; prefer `PdfRenderSession` for repeated
 latency-sensitive single-page work.
 
+Multi-page PNG, JPEG, and WebP saves render through PDFium serially while two workers encode completed pages. At most
+two full rendered-page buffers are retained and reused. BMP and one-page saves remain sequential with one buffer.
+Generated filenames remain deterministic, although compressed files may finish in a different order. If a save
+fails, files completed before the failure remain in the output directory.
+
 ## Output Formats
 
 ```csharp

@@ -95,8 +95,12 @@ Render selected pages while opening the PDF once:
 PdfImageConverter.SavePageNumbers("sample.pdf", new[] { 1, 3 }, "images");
 ```
 
-For repeated latency-sensitive rendering or batch encoding, use a session. It keeps the document open and reuses the
-loaded page and render buffer when possible:
+Multi-page PNG, JPEG, and WebP saves automatically overlap serialized PDFium rendering with two encoding workers.
+The pipeline reuses at most two full rendered-page buffers; BMP and single-page saves remain sequential. Compression,
+quality, filenames, and page numbering are unchanged.
+
+For repeated latency-sensitive rendering or custom per-page processing, use a session. It keeps the document open
+and reuses the loaded page and render buffer when possible:
 
 ```csharp
 using var session = PdfRenderSession.Open("sample.pdf");

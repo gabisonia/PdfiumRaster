@@ -21,6 +21,8 @@ make benchmark-session
 make benchmark-encoding
 make benchmark-compare
 make benchmark-dispatcher
+make benchmark-bmp
+make benchmark-pipeline
 ```
 
 BenchmarkDotNet output is written to:
@@ -43,6 +45,9 @@ Benchmarks cover:
 - Legacy reopen versus owned, caller-owned, and scoped `PdfRenderSession` rendering at 96, 144, and 300 DPI
 - Isolated PNG encoding at the Skia default and zlib compression levels 1, 6, and 9
 - Sequential batches versus `PdfRenderDispatcher` batches for raw rendering and fast PNG output
+- Fast PNG dispatcher batches using independent seekable-stream inputs
+- Row-by-row versus contiguous BMP pixel output
+- Sequential versus two-buffer pipelined multi-page PNG and JPEG output
 
 Use Release builds and compare allocated bytes as well as mean runtime. Some legacy image-output benchmarks call
 `MemoryStream.ToArray()` so BenchmarkDotNet can consume the result; that final byte-array allocation belongs to the
@@ -97,6 +102,25 @@ The reported encoding allocation is dominated by the `MemoryStream` destination 
 response, or other streaming destination avoids retaining the complete encoded image in a managed byte array; it does
 not eliminate allocations performed by the destination itself.
 
+### Multi-Page Encoding Pipeline
+
+The multi-page benchmark renders four pages serially and writes encoded bytes to counting streams, excluding file
+system variance. The optimized path reuses two full page buffers and permits two completed pages to encode while
+PDFium rendering remains serialized:
+
+| Output | DPI | Sequential | Two-buffer pipeline | Improvement |
+|---|---:|---:|---:|---:|
+| Fast PNG | 96 | 69.41 ms | 42.21 ms | 39% |
+| Default PNG | 96 | 89.79 ms | 52.95 ms | 41% |
+| JPEG quality 100 | 96 | 23.16 ms | 18.19 ms | 21% |
+| Fast PNG | 144 | 137.97 ms | 77.94 ms | 44% |
+| Default PNG | 144 | 180.55 ms | 99.55 ms | 45% |
+| JPEG quality 100 | 144 | 34.48 ms | 24.52 ms | 29% |
+
+The pipeline is automatic for multi-page PNG, JPEG, and WebP output. It does not alter compression or quality. BMP
+and one-page output remain sequential because parallel encoding would add scheduling and memory costs without a
+comparable CPU-encoding benefit.
+
 ### Concurrent Dispatcher
 
 The dispatcher short-run benchmark uses batches of four independent 96-DPI requests. Fast-PNG output uses two
@@ -113,6 +137,25 @@ Parallel encoding reduced the four-image PNG batch time by about 44%. The additi
 dispatcher task and queue bookkeeping. Raw rendering did not materially improve because both paths execute the same
 PDFium work serially; its confidence intervals overlap. These short-run results validate the pipeline but should not
 be used to select production capacity without workload-specific measurements.
+
+### Seekable Stream Dispatcher
+
+The independent-stream benchmark submits four seekable `MemoryStream` inputs and writes fast PNG output through a
+dispatcher with two encoding workers. The bounded stream reader measured 38.39 ms per batch, compared with 38.26 ms
+before the change. The difference is below 1% and well inside the short-run confidence intervals.
+
+Managed allocation for this end-to-end benchmark is dominated by occasional large `ArrayPool<byte>` rentals for
+rendered page buffers and varies with thread-pool scheduling, so it does not isolate the stream reader. The enforced
+memory invariant is deterministic: all seekable PDF inputs share one lazily rented scratch buffer, and native read
+requests larger than 64 KiB are copied in chunks. A PDFium callback can therefore no longer rent a temporary managed
+array proportional to the requested block size.
+
+### BMP Output
+
+The isolated writer benchmark uses a 1200 by 1600 bitmap and a counting destination stream. Writing the pixel buffer
+once measured 9.49 ns, compared with 1.011 us for 1600 row writes. This removes almost all per-row stream-dispatch
+overhead and reduces each BMP from `height + 1` writes to two writes. The benchmark deliberately excludes file-system
+I/O; end-to-end gains depend on the destination stream and storage device.
 
 ## PDFiumCore Comparison
 
@@ -142,9 +185,12 @@ representative PDF corpus.
 PNG, JPEG, and WebP encoding pins the existing `PdfBitmap.Pixels` buffer and encodes directly from an `SKPixmap` to
 the destination stream. This avoids allocating a second full-size image and an intermediate `SKData` encoded buffer.
 
-BMP output writes rows directly from the existing `PdfBitmap.Pixels` buffer.
+BMP output writes the contiguous `PdfBitmap.Pixels` buffer directly after its header. This avoids a stream call for
+every bitmap row without allocating another full-size image.
 
-`SaveDocument` opens the PDF once, caches the page count, and processes pages one at a time. This avoids retaining rendered bitmaps for the entire document export.
+`SaveDocument`, `SavePages`, and `SavePageNumbers` open the PDF once. Multi-page PNG, JPEG, and WebP output overlaps
+serialized rendering with two encoding workers and retains at most two reusable full-page bitmap leases. BMP and
+single-page output retain one lease and run sequentially.
 
 `SavePage`, `SavePageNumber`, `SaveDocument`, `SavePages`, and `SavePageNumbers` render through pooled page bitmaps when writing directly to files or streams. Prefer save helpers when the rendered bitmap does not need to be returned to the caller.
 
@@ -160,6 +206,10 @@ parsing costs for every page.
 `PdfDocument.PageCount` and loaded page dimensions are cached for the native document and page lifetimes. Background
 fill and page rendering are also issued within one serialized native operation.
 
+Seekable stream access reuses one process-wide 64 KiB scratch buffer for PDFium custom file callbacks. Larger native
+read requests are fulfilled in chunks, which bounds temporary input-copy memory independently of PDF size. This is
+safe because PDFium calls and their custom file callbacks are serialized through the shared native lock.
+
 `PdfRenderSession` packages the fastest safe repeated-render path: it keeps the document open, caches the current
 loaded page, and resizes its pooled native bitmap only when output dimensions change. Use the scoped callback overload
 when the pixels can be consumed synchronously; use the owned-bitmap or caller-destination overload when pixels must
@@ -174,7 +224,9 @@ dispatcher after task completion.
 
 Prefer file path or seekable stream APIs for large PDFs. Byte array and Base64 APIs keep the entire PDF in managed memory.
 
-Use `SaveDocument` for full-document export instead of repeatedly calling single-page helpers. Single-page save helpers are optimized for memory, but still reopen the document each time.
+Use `SaveDocument` for full-document export instead of repeatedly calling single-page helpers. It opens the document
+once and automatically pipelines compressed output. Single-page save helpers are optimized for memory, but still
+reopen the document each time.
 
 Use `SavePages` or `SavePageNumbers` when exporting only part of a document.
 

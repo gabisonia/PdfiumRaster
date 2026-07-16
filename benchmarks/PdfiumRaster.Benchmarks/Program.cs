@@ -145,7 +145,7 @@ public class PdfRenderingBenchmarks
     [Benchmark]
     public long SavePngToFile()
     {
-        var outputPath = Path.Combine(_outputDirectory, Guid.NewGuid().ToString("N") + ".png");
+        var outputPath = Path.Combine(_outputDirectory, "single-page.png");
 
         PdfImageConverter.SavePng(
             _pdfPath,
@@ -176,7 +176,7 @@ public class PdfRenderingBenchmarks
     [Benchmark]
     public int SaveDocumentAsBmp()
     {
-        var outputDirectory = Path.Combine(_outputDirectory, Guid.NewGuid().ToString("N"));
+        var outputDirectory = Path.Combine(_outputDirectory, "bmp-document");
 
         return PdfImageConverter.SaveDocument(
             _pdfPath,
@@ -192,7 +192,7 @@ public class PdfRenderingBenchmarks
     [Benchmark]
     public int SaveDocumentAsPng()
     {
-        var outputDirectory = Path.Combine(_outputDirectory, Guid.NewGuid().ToString("N"));
+        var outputDirectory = Path.Combine(_outputDirectory, "png-document");
 
         return PdfImageConverter.SaveDocument(
             _pdfPath,
@@ -208,7 +208,7 @@ public class PdfRenderingBenchmarks
     [Benchmark]
     public int SaveDocumentAsJpeg()
     {
-        var outputDirectory = Path.Combine(_outputDirectory, Guid.NewGuid().ToString("N"));
+        var outputDirectory = Path.Combine(_outputDirectory, "jpeg-document");
 
         return PdfImageConverter.SaveDocument(
             _pdfPath,
@@ -224,7 +224,7 @@ public class PdfRenderingBenchmarks
     [Benchmark]
     public int SaveSelectedPagesAsPng()
     {
-        var outputDirectory = Path.Combine(_outputDirectory, Guid.NewGuid().ToString("N"));
+        var outputDirectory = Path.Combine(_outputDirectory, "selected-png-pages");
 
         return PdfImageConverter.SavePages(
             _pdfPath,

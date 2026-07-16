@@ -205,6 +205,158 @@ public class PdfRenderDispatcherRawBenchmarks
     }
 }
 
+/// <summary>
+/// Measures batches of independent seekable-stream inputs saved through the dispatcher.
+/// </summary>
+[MemoryDiagnoser]
+[ShortRunJob]
+public class PdfRenderDispatcherSeekableStreamBenchmarks
+{
+    private byte[] _pdfBytes = [];
+    private PdfImageConversionOptions _options = null!;
+    private PdfRenderDispatcher _dispatcher = null!;
+
+    /// <summary>
+    /// Gets or sets the number of independent requests in one measured batch.
+    /// </summary>
+    [Params(4)]
+    public int BatchSize { get; set; }
+
+    /// <summary>
+    /// Initializes the shared dispatcher and render settings.
+    /// </summary>
+    [GlobalSetup]
+    public void Setup()
+    {
+        _pdfBytes = File.ReadAllBytes(GetTestPdfPath("axf-annotation-1.pdf"));
+        _options = new PdfImageConversionOptions
+        {
+            Render = PdfPageRenderOptions.ScreenPreview,
+            Format = PdfImageOutputFormat.Png,
+            Encoding = PdfImageEncodingOptions.Fast,
+        };
+        _dispatcher = new PdfRenderDispatcher(new PdfRenderDispatcherOptions
+        {
+            QueueCapacity = BatchSize,
+            EncodingConcurrency = 2,
+        });
+    }
+
+    /// <summary>
+    /// Drains and disposes the dispatcher.
+    /// </summary>
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        _dispatcher.CompleteAsync().GetAwaiter().GetResult();
+        _dispatcher.Dispose();
+    }
+
+    /// <summary>
+    /// Saves independent seekable streams as fast PNG images.
+    /// </summary>
+    /// <returns>Total encoded bytes.</returns>
+    [Benchmark]
+    public async Task<long> DispatcherSeekableStreamFastPng()
+    {
+        var inputs = new MemoryStream[BatchSize];
+        var outputs = new CountingWriteStream[BatchSize];
+        var tasks = new Task[BatchSize];
+        try
+        {
+            for (var index = 0; index < BatchSize; index++)
+            {
+                inputs[index] = new MemoryStream(_pdfBytes, writable: false);
+                outputs[index] = new CountingWriteStream();
+                tasks[index] = _dispatcher.SavePageAsync(inputs[index], 0, outputs[index], _options);
+            }
+
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+            return outputs.Sum(output => output.BytesWritten);
+        }
+        finally
+        {
+            foreach (var input in inputs)
+            {
+                input?.Dispose();
+            }
+
+            foreach (var output in outputs)
+            {
+                output?.Dispose();
+            }
+        }
+    }
+
+    private static string GetTestPdfPath(string fileName)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            var path = Path.Combine(directory.FullName, "tests", "PdfiumRaster.Tests", "TestAssets", fileName);
+            if (File.Exists(path))
+            {
+                return path;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new FileNotFoundException($"Could not find benchmark PDF asset '{fileName}'.");
+    }
+}
+
+/// <summary>
+/// Compares row-by-row BMP pixel output with one contiguous pixel write.
+/// </summary>
+[MemoryDiagnoser]
+[ShortRunJob]
+public class BmpWriterBenchmarks
+{
+    private PdfBitmap _bitmap = null!;
+
+    /// <summary>
+    /// Creates a representative rendered-page bitmap.
+    /// </summary>
+    [GlobalSetup]
+    public void Setup()
+    {
+        _bitmap = PdfBitmap.Create(width: 1200, height: 1600);
+    }
+
+    /// <summary>
+    /// Writes the bitmap header followed by one stream write per pixel row.
+    /// </summary>
+    /// <returns>Total bytes written.</returns>
+    [Benchmark(Baseline = true)]
+    public long RowByRowPixels()
+    {
+        using var stream = new CountingWriteStream();
+        var header = new byte[54];
+        stream.Write(header, 0, header.Length);
+
+        for (var row = 0; row < _bitmap.Height; row++)
+        {
+            stream.Write(_bitmap.Pixels, row * _bitmap.Stride, _bitmap.Stride);
+        }
+
+        GC.KeepAlive(header);
+        return stream.BytesWritten;
+    }
+
+    /// <summary>
+    /// Writes the bitmap through the optimized contiguous BMP writer.
+    /// </summary>
+    /// <returns>Total bytes written.</returns>
+    [Benchmark]
+    public long ContiguousPixels()
+    {
+        using var stream = new CountingWriteStream();
+        PdfImageWriter.WriteBmp(_bitmap, stream);
+        return stream.BytesWritten;
+    }
+}
+
 internal sealed class CountingWriteStream : Stream
 {
     internal long BytesWritten { get; private set; }
