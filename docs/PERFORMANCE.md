@@ -53,7 +53,7 @@ Use Release builds and compare allocated bytes as well as mean runtime. Some leg
 `MemoryStream.ToArray()` so BenchmarkDotNet can consume the result; that final byte-array allocation belongs to the
 benchmark harness rather than the streaming writer.
 
-## Latest Local Baseline
+## Recorded Local Baseline
 
 These results were measured in July 2026 on an Apple M3 Pro using macOS 26.5.2, .NET SDK 10.0.105, and .NET runtime
 10.0.5. They use the tracked `axf-annotation-1.pdf` asset. Results are a regression baseline for this machine, not a
@@ -210,10 +210,10 @@ Seekable stream access reuses one process-wide 64 KiB scratch buffer for PDFium 
 read requests are fulfilled in chunks, which bounds temporary input-copy memory independently of PDF size. This is
 safe because PDFium calls and their custom file callbacks are serialized through the shared native lock.
 
-`PdfRenderSession` packages the fastest safe repeated-render path: it keeps the document open, caches the current
-loaded page, and resizes its pooled native bitmap only when output dimensions change. Use the scoped callback overload
-when the pixels can be consumed synchronously; use the owned-bitmap or caller-destination overload when pixels must
-outlive the call.
+`PdfRenderSession` packages the lowest-allocation repeated-render path measured by the benchmark suite: it keeps the
+document open, caches the current loaded page, and resizes its pooled native bitmap only when output dimensions
+change. Use the scoped callback overload when the pixels can be consumed synchronously; use the owned-bitmap or
+caller-destination overload when pixels must outlive the call.
 
 `PdfRenderDispatcher` bounds mixed-document concurrency. Its request queue stores descriptors and references, while
 `EncodingConcurrency` bounds full-size leased save buffers. With two encoding workers, at most two rendered save

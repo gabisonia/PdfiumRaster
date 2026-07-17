@@ -1,6 +1,7 @@
 # PdfiumRaster Architecture
 
-This document explains how PdfiumRaster is organized and how the main technical pieces fit together. It is intended for package users who need to understand runtime behavior and contributors who need to change the library safely.
+This document describes runtime behavior and the design constraints that contributors need to preserve. For usage,
+start with the [README](../README.md) or [API guide](API.md).
 
 ## Project Purpose
 
@@ -206,10 +207,7 @@ Benchmark guidance and current memory notes are documented in [PERFORMANCE.md](P
 
 Selected-page exports should use `SavePages` or `SavePageNumbers` so the PDF is opened once and pages are still processed one at a time.
 
-## Contributor Rules
+## Contributing
 
-Keep PDFium calls inside `PdfiumNative`, preserve the shared native lock, and keep callback delegates and unmanaged structures alive for the full native lifetime that PDFium expects.
-
-Public APIs should remain simple and backward compatible. Add overloads rather than changing existing method semantics once a behavior is released.
-
-Every public type, member, enum value, and overload should have useful XML documentation. Comments should call out page index vs page number, pixel/PDF point/DPI units, stream ownership, and memory behavior where relevant.
+Native lifetime, compatibility, documentation, and test requirements are documented in
+[CONTRIBUTING.md](../CONTRIBUTING.md).

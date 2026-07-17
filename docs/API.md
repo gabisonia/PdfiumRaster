@@ -1,6 +1,7 @@
-# PdfiumRaster API Reference
+# PdfiumRaster API Guide
 
-This document summarizes the supported public API surface.
+This guide explains the main public workflows and their ownership rules. The XML documentation shipped in the NuGet
+package is the exhaustive member-level reference.
 
 For project structure, runtime architecture, native dependency behavior, and contributor guidance, see [Architecture](ARCHITECTURE.md).
 
@@ -488,21 +489,3 @@ native calls do not render inside PDFium in parallel. Callers must still coordin
 `PdfDocument`, `PdfPage`, and `PdfBitmapLease` instances and must not dispose them while another operation is using
 them. `PdfRenderSession` is synchronous and single-operation; concurrent and reentrant session operations throw
 `InvalidOperationException`. Use separate processes for true parallel rendering.
-
-## Current Scope
-
-Supported:
-
-- Desktop/server .NET via `netstandard2.0`
-- PDF-to-image rendering
-- PDFium native assets through NuGet
-- BMP/PNG/JPEG/WebP output
-- File, stream, byte array, and Base64 inputs
-
-Not currently implemented:
-
-- Async `IAsyncEnumerable` conversion
-- Form-fill rendering
-- Bounds/tiling rendering
-- Browser/mobile-specific target frameworks
-- .NET Framework-specific native loader customization

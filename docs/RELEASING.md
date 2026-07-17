@@ -5,6 +5,9 @@ This checklist is for publishing `PdfiumRaster` to NuGet.
 Run a release from a reviewed commit on the intended release branch with a clean working tree. Confirm that the
 version has not already been published to NuGet.org; package versions are immutable.
 
+This is a maintainer procedure. Contributor setup and pull-request checks are documented in
+[CONTRIBUTING.md](../CONTRIBUTING.md).
+
 ## GitHub Setup
 
 Create a NuGet.org Trusted Publishing policy for this repository.
@@ -194,7 +197,7 @@ Test at least one runtime identifier for each operating system supported by the 
 versions change. CI currently exercises Linux; Windows and macOS verification should be recorded separately for a
 native-runtime update.
 
-### 8. Tag Release
+### 8. Tag And Record The Release
 
 ```bash
 git tag v<version>
@@ -202,4 +205,5 @@ git push origin v<version>
 ```
 
 Create the tag from the exact commit that produced the published package, then attach or link the `.nupkg`, `.snupkg`,
-test result, and relevant benchmark summaries in the release record.
+test result, and relevant benchmark summaries in the GitHub release. Summarize user-visible changes and any native
+dependency or platform-support changes.

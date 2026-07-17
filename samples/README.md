@@ -1,6 +1,7 @@
 # PdfiumRaster Samples
 
-These samples describe the supported PDF-to-image workflows. They are intentionally small so each one maps directly to a public API.
+These snippets assume a .NET project with the `PdfiumRaster` package installed and an `input.pdf` file in the working
+directory. Page-index APIs are zero-based; page-number APIs are 1-based.
 
 ## Export One Page
 
@@ -298,24 +299,4 @@ PdfImageConverter.SavePng(
     });
 
 output.Position = 0;
-```
-
-## Rendering Test Output
-
-The normal test suite renders tracked PDF assets and writes generated images under the test output directory:
-
-```text
-tests/PdfiumRaster.Tests/bin/Debug/net10.0/TestOutput/
-```
-
-Run the normal test suite:
-
-```bash
-make test
-```
-
-Run local-only tests that use ignored assets such as `tests/PdfiumRaster.Tests/TestAssets/annotations.pdf`:
-
-```bash
-make test-local
 ```
