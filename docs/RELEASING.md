@@ -74,7 +74,7 @@ src/PdfiumRaster/PdfiumRaster.csproj
 Use semantic versioning, for example:
 
 ```xml
-<VersionPrefix>0.3.0</VersionPrefix>
+<VersionPrefix>1.0.0</VersionPrefix>
 ```
 
 The manual workflow can override this with `/p:PackageVersion=<version>`, so updating `VersionPrefix` is mostly for source consistency.
@@ -83,7 +83,7 @@ Keep `PACKAGE_VERSION` in the root `Makefile` synchronized with `VersionPrefix`.
 `smoke-package` targets use that value to locate and install the package:
 
 ```make
-PACKAGE_VERSION := 0.3.0
+PACKAGE_VERSION := 1.0.0
 ```
 
 Update user-facing documentation and release notes for public API, behavior, runtime dependency, and performance

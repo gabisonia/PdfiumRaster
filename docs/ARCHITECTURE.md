@@ -206,6 +206,8 @@ make benchmark-session
 make benchmark-encoding
 make benchmark-compare
 make benchmark-dispatcher
+make benchmark-bmp
+make benchmark-pipeline
 ```
 
 Benchmark guidance and current memory notes are documented in [PERFORMANCE.md](PERFORMANCE.md).

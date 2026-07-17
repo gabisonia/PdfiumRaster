@@ -336,6 +336,15 @@ public enum PdfImageColorMode
 
 `BlackAndWhiteThreshold` is applied to luminance after rendering. Lower values produce more white pixels; higher values produce more black pixels.
 
+Apply color post-processing directly to an existing bitmap when conversion is separate from rendering:
+
+```csharp
+PdfImageConverter.ApplyColorMode(bitmap, PdfImageColorMode.Grayscale);
+PdfImageConverter.ApplyColorMode(bitmap, PdfImageColorMode.BlackAndWhite, blackAndWhiteThreshold: 160);
+```
+
+The conversion modifies the bitmap pixels in place. The threshold is used only for black-and-white conversion.
+
 ### Anti-Aliasing
 
 ```csharp
@@ -457,6 +466,17 @@ PdfImageWriter.WriteWebp(bitmap, stream);
 PdfImageWriter.WritePng(bitmap, stream, PdfImageEncodingOptions.Fast);
 ```
 
+The converter facade can select the output format at runtime. `SaveBitmap` has path and stream overloads, with optional
+encoding settings for PNG, JPEG, and WebP:
+
+```csharp
+PdfImageConverter.SaveBitmap(bitmap, "page.png", PdfImageOutputFormat.Png, PdfImageEncodingOptions.Fast);
+PdfImageConverter.SaveBitmap(bitmap, stream, PdfImageOutputFormat.Jpeg, new PdfImageEncodingOptions
+{
+    Quality = 85,
+});
+```
+
 Compressed writers encode directly from the pinned bitmap pixels into the destination stream. Stream overloads do
 not close caller-owned streams.
 
@@ -484,7 +504,8 @@ binary copy is required for supported runtime identifiers.
 
 Public APIs validate nulls, page ranges, dimensions, DPI, rotation, encoding ranges, and destination bitmap sizes.
 PDFium-reported document and page failures raise `PdfiumException`; inspect its `Error` property rather than retrying
-blindly.
+blindly. `Error` is a `PdfiumError` value that distinguishes file, format, password, security, and page failures; it
+may also report `Unknown` when PDFium does not provide a more specific category.
 
 PDFium is not thread-safe. PdfiumRaster serializes native PDFium calls with a process-wide shared lock. Concurrent
 native calls do not render inside PDFium in parallel. Callers must still coordinate ownership of disposable

@@ -8,7 +8,7 @@
     <AssemblyName>PdfiumRaster</AssemblyName>
     <RootNamespace>PdfiumRaster</RootNamespace>
     <PackageId>PdfiumRaster</PackageId>
-    <VersionPrefix>0.3.0</VersionPrefix>
+    <VersionPrefix>1.0.0</VersionPrefix>
     <Authors>PdfiumRaster contributors</Authors>
     <Title>PdfiumRaster</Title>
     <Description>PDFium-backed .NET Standard library for rendering PDF pages to images.</Description>
