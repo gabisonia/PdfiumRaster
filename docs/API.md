@@ -43,7 +43,9 @@ using var stream = File.OpenRead("large.pdf");
 int pageCount = PdfImageConverter.GetPageCount(stream, leaveOpen: true);
 ```
 
-Seekable streams are loaded through PDFium custom file access, so the full PDF is not copied into a managed byte array. Byte array and Base64 APIs keep the full PDF in memory. Non-seekable streams are buffered into memory before loading because PDFium requires random access.
+Seekable streams are loaded through PDFium custom file access, so the full PDF is not copied into a managed byte array.
+Byte array and Base64 APIs keep the full PDF in memory. Non-seekable streams are buffered once because PDFium requires
+random access; the backing buffer remains in managed memory for the open document lifetime.
 
 Input stream overloads use `leaveOpen: false` by default. Pass `leaveOpen: true` when ownership remains with the
 caller. Output stream overloads always leave the destination stream open.
@@ -135,8 +137,8 @@ PdfRenderSession.Open(byte[] pdfBytes, string? password = null);
 PdfRenderSession.Open(Stream pdfStream, bool leaveOpen = false, string? password = null);
 ```
 
-Seekable streams use random access without a full managed copy. Non-seekable streams are buffered. Byte arrays remain
-pinned and fully resident until the session is disposed.
+Seekable streams use random access without a full managed copy. Non-seekable streams retain one buffered backing array.
+Byte arrays remain pinned and fully resident until the session is disposed.
 
 `SavePage` has file-path and stream overloads and uses the session-owned reusable buffer internally. Destination
 streams remain open:

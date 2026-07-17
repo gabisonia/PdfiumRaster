@@ -65,6 +65,20 @@ public sealed class PdfRenderDispatcherTests
     }
 
     [Fact]
+    public async Task Save_non_seekable_stream_writes_png_and_disposes_owned_input()
+    {
+        var pdfBytes = File.ReadAllBytes(GetTestPdfPath("smoke.pdf"));
+        var input = new TestNonSeekableReadStream(pdfBytes);
+        using var output = new MemoryStream();
+        using var dispatcher = new PdfRenderDispatcher();
+
+        await dispatcher.SavePageAsync(input, 0, output, PngOptions());
+
+        Assert.True(input.IsDisposed);
+        AssertPng(output.ToArray());
+    }
+
+    [Fact]
     public async Task Failed_request_does_not_stop_dispatcher()
     {
         using var dispatcher = new PdfRenderDispatcher();

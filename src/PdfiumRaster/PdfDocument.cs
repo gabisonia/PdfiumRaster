@@ -76,16 +76,7 @@ public sealed class PdfDocument : IDisposable
             throw new ArgumentException("PDF bytes cannot be empty.", nameof(bytes));
         }
 
-        var pinnedBytes = GCHandle.Alloc(bytes, GCHandleType.Pinned);
-        var handle = PdfiumNative.FPDF_LoadMemDocument(pinnedBytes.AddrOfPinnedObject(), bytes.Length, password);
-
-        if (handle == IntPtr.Zero)
-        {
-            pinnedBytes.Free();
-            throw PdfiumException.FromLastError("Could not load PDF document from memory.");
-        }
-
-        return new PdfDocument(handle, PdfiumNative.FPDF_GetPageCount(handle), pinnedBytes);
+        return LoadMemory(bytes, offset: 0, bytes.Length, password);
     }
 
     /// <summary>
@@ -111,7 +102,18 @@ public sealed class PdfDocument : IDisposable
         {
             using var memoryStream = new MemoryStream();
             stream.CopyTo(memoryStream);
-            return Load(memoryStream.ToArray(), password);
+
+            if (!memoryStream.TryGetBuffer(out var buffer) || buffer.Array is null)
+            {
+                throw new InvalidOperationException("Could not access the buffered PDF stream data.");
+            }
+
+            if (buffer.Count == 0)
+            {
+                throw new ArgumentException("PDF stream cannot be empty.", nameof(stream));
+            }
+
+            return LoadMemory(buffer.Array, buffer.Offset, buffer.Count, password);
         }
         finally
         {
@@ -119,6 +121,37 @@ public sealed class PdfDocument : IDisposable
             {
                 stream.Dispose();
             }
+        }
+    }
+
+    private static PdfDocument LoadMemory(byte[] bytes, int offset, int length, string? password)
+    {
+        var pinnedBytes = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+        var handle = IntPtr.Zero;
+
+        try
+        {
+            handle = PdfiumNative.FPDF_LoadMemDocument(
+                IntPtr.Add(pinnedBytes.AddrOfPinnedObject(), offset),
+                length,
+                password);
+
+            if (handle == IntPtr.Zero)
+            {
+                throw PdfiumException.FromLastError("Could not load PDF document from memory.");
+            }
+
+            return new PdfDocument(handle, PdfiumNative.FPDF_GetPageCount(handle), pinnedBytes);
+        }
+        catch
+        {
+            if (handle != IntPtr.Zero)
+            {
+                PdfiumNative.FPDF_CloseDocument(handle);
+            }
+
+            pinnedBytes.Free();
+            throw;
         }
     }
 

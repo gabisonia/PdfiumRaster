@@ -45,7 +45,8 @@ Benchmarks cover:
 - Legacy reopen versus owned, caller-owned, and scoped `PdfRenderSession` rendering at 96, 144, and 300 DPI
 - Isolated PNG encoding at the Skia default and zlib compression levels 1, 6, and 9
 - Sequential batches versus `PdfRenderDispatcher` batches for raw rendering and fast PNG output
-- Fast PNG dispatcher batches using independent seekable-stream inputs
+- Fast PNG dispatcher batches using independent seekable and non-seekable stream inputs
+- Isolated non-seekable PDF loading allocation
 - Row-by-row versus contiguous BMP pixel output
 - Sequential versus two-buffer pipelined multi-page PNG and JPEG output
 
@@ -144,11 +145,30 @@ The independent-stream benchmark submits four seekable `MemoryStream` inputs and
 dispatcher with two encoding workers. The bounded stream reader measured 38.39 ms per batch, compared with 38.26 ms
 before the change. The difference is below 1% and well inside the short-run confidence intervals.
 
+The expanded stream benchmark measured 38.44 ms for a four-request seekable batch and 38.53 ms for an equivalent
+non-seekable batch after the single-buffer change. The 0.2% difference is below benchmark noise, so buffering no longer
+adds a material throughput penalty for this input and render workload.
+
 Managed allocation for this end-to-end benchmark is dominated by occasional large `ArrayPool<byte>` rentals for
 rendered page buffers and varies with thread-pool scheduling, so it does not isolate the stream reader. The enforced
 memory invariant is deterministic: all seekable PDF inputs share one lazily rented scratch buffer, and native read
 requests larger than 64 KiB are copied in chunks. A PDFium callback can therefore no longer rent a temporary managed
 array proportional to the requested block size.
+
+### Non-Seekable Stream Loading
+
+The isolated loading benchmark copies the tracked 144,199-byte PDF from a non-seekable stream, opens the document, and
+closes it without rendering. Loading directly from the `MemoryStream` backing array removes the second full-size array
+previously created by `ToArray()`:
+
+| Implementation | Mean | Managed allocation |
+|---|---:|---:|
+| Buffered stream plus `ToArray()` | 152.0 us | 542.44 KB |
+| Direct buffered backing array | 118.0 us | 385.13 KB |
+
+Managed allocation fell by 157.31 KB per load, or 29%, which exceeds one logical input length. The short-run mean also
+improved by about 22%, though the allocation reduction is the acceptance metric. Non-seekable input still requires one
+contiguous managed buffer for PDFium random access, and that buffer remains pinned for the document lifetime.
 
 ### BMP Output
 
@@ -209,6 +229,10 @@ fill and page rendering are also issued within one serialized native operation.
 Seekable stream access reuses one process-wide 64 KiB scratch buffer for PDFium custom file callbacks. Larger native
 read requests are fulfilled in chunks, which bounds temporary input-copy memory independently of PDF size. This is
 safe because PDFium calls and their custom file callbacks are serialized through the shared native lock.
+
+Non-seekable stream access loads PDFium directly from the logical byte range of its buffered `MemoryStream` backing
+array. This avoids allocating a second full-document byte array while preserving the contiguous memory and lifetime
+PDFium requires.
 
 `PdfRenderSession` packages the lowest-allocation repeated-render path measured by the benchmark suite: it keeps the
 document open, caches the current loaded page, and resizes its pooled native bitmap only when output dimensions

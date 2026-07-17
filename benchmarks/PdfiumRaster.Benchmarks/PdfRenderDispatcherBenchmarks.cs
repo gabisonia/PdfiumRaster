@@ -210,7 +210,7 @@ public class PdfRenderDispatcherRawBenchmarks
 /// </summary>
 [MemoryDiagnoser]
 [ShortRunJob]
-public class PdfRenderDispatcherSeekableStreamBenchmarks
+public class PdfRenderDispatcherStreamBenchmarks
 {
     private byte[] _pdfBytes = [];
     private PdfImageConversionOptions _options = null!;
@@ -256,7 +256,7 @@ public class PdfRenderDispatcherSeekableStreamBenchmarks
     /// Saves independent seekable streams as fast PNG images.
     /// </summary>
     /// <returns>Total encoded bytes.</returns>
-    [Benchmark]
+    [Benchmark(Baseline = true)]
     public async Task<long> DispatcherSeekableStreamFastPng()
     {
         var inputs = new MemoryStream[BatchSize];
@@ -286,6 +286,101 @@ public class PdfRenderDispatcherSeekableStreamBenchmarks
                 output?.Dispose();
             }
         }
+    }
+
+    /// <summary>
+    /// Saves independent non-seekable streams as fast PNG images.
+    /// </summary>
+    /// <returns>Total encoded bytes.</returns>
+    [Benchmark]
+    public async Task<long> DispatcherNonSeekableStreamFastPng()
+    {
+        var inputs = new NonSeekableReadStream[BatchSize];
+        var outputs = new CountingWriteStream[BatchSize];
+        var tasks = new Task[BatchSize];
+        try
+        {
+            for (var index = 0; index < BatchSize; index++)
+            {
+                inputs[index] = new NonSeekableReadStream(_pdfBytes);
+                outputs[index] = new CountingWriteStream();
+                tasks[index] = _dispatcher.SavePageAsync(inputs[index], 0, outputs[index], _options);
+            }
+
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+            return outputs.Sum(output => output.BytesWritten);
+        }
+        finally
+        {
+            foreach (var input in inputs)
+            {
+                input?.Dispose();
+            }
+
+            foreach (var output in outputs)
+            {
+                output?.Dispose();
+            }
+        }
+    }
+
+    private static string GetTestPdfPath(string fileName)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            var path = Path.Combine(directory.FullName, "tests", "PdfiumRaster.Tests", "TestAssets", fileName);
+            if (File.Exists(path))
+            {
+                return path;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new FileNotFoundException($"Could not find benchmark PDF asset '{fileName}'.");
+    }
+}
+
+/// <summary>
+/// Measures the managed allocation required to load a non-seekable PDF stream.
+/// </summary>
+[MemoryDiagnoser]
+[ShortRunJob]
+public class PdfRenderDispatcherNonSeekableLoadBenchmarks
+{
+    private byte[] _pdfBytes = [];
+    private PdfiumLibrary _library = null!;
+
+    /// <summary>
+    /// Loads the benchmark PDF and initializes PDFium.
+    /// </summary>
+    [GlobalSetup]
+    public void Setup()
+    {
+        _pdfBytes = File.ReadAllBytes(GetTestPdfPath("axf-annotation-1.pdf"));
+        _library = PdfiumLibrary.Initialize();
+    }
+
+    /// <summary>
+    /// Releases the PDFium initialization reference.
+    /// </summary>
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        _library.Dispose();
+    }
+
+    /// <summary>
+    /// Loads and closes one document from a non-seekable input stream.
+    /// </summary>
+    /// <returns>The loaded document page count.</returns>
+    [Benchmark]
+    public int LoadNonSeekableStream()
+    {
+        using var stream = new NonSeekableReadStream(_pdfBytes);
+        using var document = PdfDocument.Load(stream);
+        return document.PageCount;
     }
 
     private static string GetTestPdfPath(string fileName)
@@ -383,4 +478,40 @@ internal sealed class CountingWriteStream : Stream
     public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
     public override void SetLength(long value) => throw new NotSupportedException();
+}
+
+internal sealed class NonSeekableReadStream : Stream
+{
+    private readonly MemoryStream _inner;
+
+    internal NonSeekableReadStream(byte[] bytes)
+    {
+        _inner = new MemoryStream(bytes, writable: false);
+    }
+
+    public override bool CanRead => _inner.CanRead;
+    public override bool CanSeek => false;
+    public override bool CanWrite => false;
+    public override long Length => throw new NotSupportedException();
+    public override long Position
+    {
+        get => throw new NotSupportedException();
+        set => throw new NotSupportedException();
+    }
+
+    public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+    public override void Flush() => throw new NotSupportedException();
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override void SetLength(long value) => throw new NotSupportedException();
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _inner.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
 }

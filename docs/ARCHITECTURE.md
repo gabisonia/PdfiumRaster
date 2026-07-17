@@ -62,7 +62,10 @@ A typical conversion follows this path:
 PDF input -> PdfDocument -> PdfPage -> PDFium render -> PdfBitmap -> color mode -> image writer -> destination
 ```
 
-Inputs can be file paths, byte arrays, streams, or Base64 strings. File paths and seekable streams are preferred for large files because they avoid copying the whole PDF into one managed byte array.
+Inputs can be file paths, byte arrays, streams, or Base64 strings. File paths and seekable streams are preferred for
+large files because they avoid copying the whole PDF into one managed byte array. Non-seekable streams are copied into
+one contiguous `MemoryStream` backing array and loaded directly from that logical byte range; no second full-size array
+is created. The backing array remains pinned until the document is disposed.
 
 Rendered pages are held as pixel buffers. Memory use grows with page size, DPI, requested width/height, and number of pages held by the caller.
 
@@ -118,7 +121,9 @@ using var stream = File.OpenRead("large.pdf");
 var pageCount = PdfImageConverter.GetPageCount(stream, leaveOpen: true);
 ```
 
-Seekable streams use PDFium custom file access and are not copied into one managed byte array. Byte array and Base64 APIs keep the full PDF in memory. Non-seekable streams are buffered because PDFium requires random access.
+Seekable streams use PDFium custom file access and are not copied into one managed byte array. Byte array and Base64
+APIs keep the full PDF in memory. Non-seekable streams retain one contiguous backing buffer because PDFium requires
+random access.
 
 Large rendered pages can still allocate large pixel buffers. DPI, page dimensions, requested output width/height, and
 the number of live output bitmaps matter as much as PDF input size. The pooled backing array may be larger than

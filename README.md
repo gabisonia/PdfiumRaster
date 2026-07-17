@@ -141,7 +141,8 @@ PdfBitmap bitmap = PdfImageConverter.RenderPage(
 
 - Input streams are disposed by default. Pass `leaveOpen: true` when the caller owns the stream.
 - Output stream overloads leave the destination stream open.
-- Non-seekable input streams are buffered because PDFium requires random access.
+- Non-seekable input streams are buffered once because PDFium requires random access; the backing buffer remains in
+  managed memory for the open document lifetime.
 - Byte-array and Base64 APIs keep the complete PDF in managed memory.
 - Returned `PdfBitmap` pixels are BGRA and owned by the caller.
 - Rendered bitmap memory grows with output width and height, regardless of the source PDF file size.
