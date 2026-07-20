@@ -45,7 +45,7 @@ jobs:
           dotnet new classlib -n PdfiumRasterCompatibility -o "$tmpdir/PdfiumRasterCompatibility" --framework netstandard2.1
           cd "$tmpdir/PdfiumRasterCompatibility"
           dotnet new nugetconfig --force
-          dotnet nuget add source "$GITHUB_WORKSPACE/artifacts" --name local --configfile NuGet.config
+          dotnet nuget add source "$GITHUB_WORKSPACE/artifacts" --name local --configfile nuget.config
           dotnet add package PdfiumRaster --version 2.0.0
           dotnet build --configuration Release
 
