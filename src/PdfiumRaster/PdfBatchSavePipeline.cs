@@ -4,7 +4,7 @@ using System.Threading.Channels;
 namespace PdfiumRaster;
 
 internal delegate void PdfBatchBitmapEncoder(
-    PdfBitmap bitmap,
+    PdfNativeBitmapLease bitmap,
     string imagePath,
     PdfImageOutputFormat format,
     PdfImageEncodingOptions encodingOptions);
@@ -173,14 +173,14 @@ internal sealed class PdfBatchSavePipeline : IDisposable
 
     internal sealed class RenderSlot : IDisposable
     {
-        private PdfBitmapLease? _lease;
+        private PdfNativeBitmapLease? _lease;
 
-        internal PdfBitmap Bitmap => (_lease ?? throw new InvalidOperationException(
-            "The batch render slot has not been initialized.")).Bitmap;
+        internal PdfNativeBitmapLease Bitmap => _lease ?? throw new InvalidOperationException(
+            "The batch render slot has not been initialized.");
 
-        internal PdfBitmapLease EnsureLease(PdfPage page, PdfPageRenderOptions renderOptions)
+        internal PdfNativeBitmapLease EnsureLease(PdfPage page, PdfPageRenderOptions renderOptions)
         {
-            _lease = PdfImageConverter.EnsureBitmapLease(_lease, page, renderOptions);
+            _lease = PdfImageConverter.EnsureNativeBitmapLease(_lease, page, renderOptions);
             return _lease;
         }
 

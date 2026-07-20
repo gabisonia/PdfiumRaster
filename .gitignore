@@ -6,6 +6,7 @@ BenchmarkDotNet.Artifacts/
 *.nupkg
 *.snupkg
 tests/PdfiumRaster.Tests/TestAssets/annotations.pdf
+tests/PdfiumRaster.Tests/TestAssets/Engineering Drawings.pdf
 
 .DS_Store
 *.user

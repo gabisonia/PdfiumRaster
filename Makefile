@@ -3,10 +3,10 @@ SOLUTION := PdfiumRaster.slnx
 PROJECT := src/PdfiumRaster/PdfiumRaster.csproj
 CONFIGURATION := Release
 ARTIFACTS_DIR := artifacts
-PACKAGE_VERSION := 1.0.0
+PACKAGE_VERSION := 2.0.0
 PACKAGE := $(ARTIFACTS_DIR)/PdfiumRaster.$(PACKAGE_VERSION).nupkg
 
-.PHONY: help restore build test test-local pack inspect-package smoke-package benchmark benchmark-compare benchmark-session benchmark-encoding benchmark-dispatcher benchmark-bmp benchmark-pipeline release-check clean
+.PHONY: help restore build test test-local pack inspect-package smoke-package benchmark benchmark-compare benchmark-session benchmark-encoding benchmark-dispatcher benchmark-bmp benchmark-pipeline benchmark-native-buffer benchmark-all-pages release-check clean
 
 help:
 	@printf '%s\n' \
@@ -25,6 +25,8 @@ help:
 		'  make benchmark-dispatcher Compare sequential and concurrent dispatcher batches' \
 		'  make benchmark-bmp     Compare row-based and contiguous BMP output' \
 		'  make benchmark-pipeline Compare sequential and pipelined document export' \
+		'  make benchmark-native-buffer Compare managed and PDFium-owned save buffers' \
+		'  make benchmark-all-pages PDF=<path> Measure every page with managed and native buffers' \
 		'  make release-check    Run tests, pack, inspect, and package smoke test' \
 		'  make clean            Remove build and package outputs'
 
@@ -107,6 +109,22 @@ benchmark-bmp:
 
 benchmark-pipeline:
 	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts --filter '*PdfDocumentPipelineBenchmarks*'
+
+benchmark-native-buffer:
+	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts --filter '*PdfNativeSaveBufferBenchmarks*'
+
+benchmark-all-pages:
+	@if [[ -z "$(PDF)" ]]; then echo 'Usage: make benchmark-all-pages PDF=<pdf-path>' >&2; exit 2; fi
+	dotnet build benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -c Release
+	@printf '%s\n' 'mode,dpi,format,pages,elapsed_ms,encoded_bytes,total_pixel_bytes,max_page_buffer_bytes,managed_allocated_bytes,peak_working_set_delta_bytes,gen0_collections,gen1_collections,gen2_collections'
+	@for dpi in 96 144 300; do \
+		for format in Bmp Png Jpeg Webp; do \
+			for mode in native managed; do \
+				dotnet benchmarks/PdfiumRaster.Benchmarks/bin/Release/net10.0/PdfiumRaster.Benchmarks.dll \
+					--all-pages-measure "$(PDF)" "$$mode" "$$dpi" "$$format"; \
+			done; \
+		done; \
+	done
 
 release-check: test pack inspect-package smoke-package
 

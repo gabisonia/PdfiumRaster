@@ -22,7 +22,7 @@ Directory.Packages.props           central package versions
 Makefile                           standard local command surface
 ```
 
-The library targets `netstandard2.0`. Tests target modern .NET and exercise the package through the public API whenever possible.
+The library targets `netstandard2.1`. Tests target modern .NET and exercise the package through the public API whenever possible.
 
 ## Main Components
 
@@ -46,7 +46,12 @@ backpressure without weakening the process-wide native serialization rule.
 `FPDF_BITMAP`; subsequent renders reuse both until disposal. A lease keeps a PDFium initialization reference alive
 for the native bitmap lifetime.
 
-`PdfImageWriter` writes existing `PdfBitmap` instances. BMP is written directly by PdfiumRaster. PNG, JPEG, and WebP are encoded through SkiaSharp.
+`PdfNativeBitmapLease` is the internal save-only counterpart. PDFium owns its unmanaged BGRA buffer, which avoids a
+full-page managed array when the library renders directly to an image file or stream. It is never exposed through the
+public API.
+
+`PdfImageWriter` writes existing `PdfBitmap` instances and internal PDFium-owned buffers. BMP is written directly by
+PdfiumRaster. PNG, JPEG, and WebP are encoded through SkiaSharp.
 
 Options are split by responsibility:
 
@@ -69,18 +74,19 @@ is created. The backing array remains pinned until the document is disposed.
 
 Rendered pages are held as pixel buffers. Memory use grows with page size, DPI, requested width/height, and number of pages held by the caller.
 
-PNG, JPEG, and WebP encoding pins the rendered pixel buffer during synchronous SkiaSharp encoding and writes from an
-`SKPixmap` directly to the destination stream. This avoids a second full-size managed pixel buffer and an intermediate
-encoded `SKData` buffer.
+PNG, JPEG, and WebP encoding writes from an `SKPixmap` directly to the destination stream. Public managed bitmaps are
+pinned for synchronous encoding; library-owned save operations point `SKPixmap` directly at PDFium-owned unmanaged
+pixels. Both paths avoid a second full-size pixel buffer and an intermediate encoded `SKData` buffer.
 
 The high-throughput session path is:
 
 ```text
-PdfRenderSession -> cached PdfPage -> reusable PdfBitmapLease -> synchronous callback or image writer
+PdfRenderSession -> cached PdfPage -> reusable managed callback buffer or native save buffer
 ```
 
 An owned-bitmap session render still allocates the returned pixel array. Caller-owned and scoped session rendering
-avoid that full-size per-call allocation when output dimensions remain stable.
+reuse a managed buffer, while session save operations reuse a PDFium-owned unmanaged buffer. Switching between those
+operation families disposes the inactive full-page buffer.
 
 The concurrent save path is:
 
@@ -89,8 +95,8 @@ concurrent callers -> bounded request channel -> one PDFium worker -> bounded bi
 ```
 
 An encoding slot is acquired before rendering a save request. Consequently, slow output cannot cause an unbounded
-backlog of full-size rendered pages. Raw bitmap requests bypass encoding slots and transfer their managed pixel memory
-to the caller.
+backlog of PDFium-owned full-size buffers. Raw bitmap requests bypass encoding slots and transfer their managed pixel
+memory to the caller.
 
 ## Native Dependencies
 
@@ -175,7 +181,7 @@ tests/PdfiumRaster.Tests/bin/Debug/net10.0/TestOutput/
 
 The NuGet package includes:
 
-- `lib/netstandard2.0/PdfiumRaster.dll`
+- `lib/netstandard2.1/PdfiumRaster.dll`
 - XML documentation for IntelliSense
 - `README.md` as the package readme
 - symbol package output

@@ -1,17 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>PdfiumRaster</AssemblyName>
     <RootNamespace>PdfiumRaster</RootNamespace>
     <PackageId>PdfiumRaster</PackageId>
-    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionPrefix>2.0.0</VersionPrefix>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PathMap>$(MSBuildProjectDirectory)=/_/src/PdfiumRaster</PathMap>
     <Authors>PdfiumRaster contributors</Authors>
     <Title>PdfiumRaster</Title>
-    <Description>PDFium-backed .NET Standard library for rendering PDF pages to images.</Description>
+    <Description>PDFium-backed .NET Standard 2.1 library for rendering PDF pages to images.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>

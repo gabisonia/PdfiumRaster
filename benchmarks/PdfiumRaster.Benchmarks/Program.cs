@@ -1,6 +1,13 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using PdfiumRaster;
+using PdfiumRaster.Benchmarks;
+
+if (args.Length > 0 && args[0] == "--all-pages-measure")
+{
+    PdfAllPagesMeasurement.Run(args[1..]);
+    return;
+}
 
 BenchmarkSwitcher.FromAssembly(typeof(PdfRenderingBenchmarks).Assembly).Run(args);
 

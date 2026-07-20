@@ -148,7 +148,8 @@ public sealed class PdfPage : IDisposable
         var nativeBitmap = bitmapLease.GetOrCreateNativeBitmap();
         RenderNativeBitmap(
             nativeBitmap,
-            bitmap,
+            bitmap.Width,
+            bitmap.Height,
             0,
             0,
             width,
@@ -156,6 +157,40 @@ public sealed class PdfPage : IDisposable
             options.Rotation,
             options.GetRenderFlags(),
             options.FillBackground ? options.BackgroundColor : null);
+    }
+
+    internal void Render(PdfNativeBitmapLease bitmapLease, PdfPageRenderOptions renderOptions)
+    {
+        ThrowIfDisposed();
+        if (bitmapLease is null)
+        {
+            throw new ArgumentNullException(nameof(bitmapLease));
+        }
+
+        if (renderOptions is null)
+        {
+            throw new ArgumentNullException(nameof(renderOptions));
+        }
+
+        var (width, height) = renderOptions.GetPixelSize(Width, Height);
+        if (bitmapLease.Width != width || bitmapLease.Height != height)
+        {
+            throw new ArgumentException(
+                $"Destination native bitmap lease must be {width}x{height} pixels for the requested render options.",
+                nameof(bitmapLease));
+        }
+
+        RenderNativeBitmap(
+            bitmapLease.Handle,
+            bitmapLease.Width,
+            bitmapLease.Height,
+            0,
+            0,
+            width,
+            height,
+            renderOptions.Rotation,
+            renderOptions.GetRenderFlags(),
+            renderOptions.FillBackground ? renderOptions.BackgroundColor : null);
     }
 
     /// <summary>
@@ -220,7 +255,8 @@ public sealed class PdfPage : IDisposable
             {
                 RenderNativeBitmap(
                     nativeBitmap,
-                    bitmap,
+                    bitmap.Width,
+                    bitmap.Height,
                     startX,
                     startY,
                     sizeX,
@@ -273,7 +309,8 @@ public sealed class PdfPage : IDisposable
 
     private void RenderNativeBitmap(
         IntPtr nativeBitmap,
-        PdfBitmap bitmap,
+        int bitmapWidth,
+        int bitmapHeight,
         int startX,
         int startY,
         int sizeX,
@@ -285,8 +322,8 @@ public sealed class PdfPage : IDisposable
         PdfiumNative.FPDFBitmap_FillAndRender(
             nativeBitmap,
             _handle,
-            bitmap.Width,
-            bitmap.Height,
+            bitmapWidth,
+            bitmapHeight,
             startX,
             startY,
             sizeX,

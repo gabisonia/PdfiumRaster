@@ -36,27 +36,27 @@ Stable releases require a version without a prerelease suffix:
 
 ```text
 channel = stable
-version = 1.0.0
+version = 2.0.0
 ```
 
 Beta releases can use an explicit prerelease version:
 
 ```text
 channel = beta
-version = 1.0.0-beta.1
+version = 2.0.0-beta.1
 ```
 
 Or use a base version and let the workflow append the run number:
 
 ```text
 channel = beta
-version = 1.0.0
+version = 2.0.0
 ```
 
 This resolves to:
 
 ```text
-1.0.0-beta.<github-run-number>
+2.0.0-beta.<github-run-number>
 ```
 
 The workflow restores, tests, packs, smoke-tests the package in a fresh app, uploads package artifacts, and publishes both `.nupkg` and `.snupkg` files to NuGet.org using Trusted Publishing.
@@ -74,7 +74,7 @@ src/PdfiumRaster/PdfiumRaster.csproj
 Use semantic versioning, for example:
 
 ```xml
-<VersionPrefix>1.0.0</VersionPrefix>
+<VersionPrefix>2.0.0</VersionPrefix>
 ```
 
 The manual workflow can override this with `/p:PackageVersion=<version>`, so updating `VersionPrefix` is mostly for source consistency.
@@ -83,11 +83,14 @@ Keep `PACKAGE_VERSION` in the root `Makefile` synchronized with `VersionPrefix`.
 `smoke-package` targets use that value to locate and install the package:
 
 ```make
-PACKAGE_VERSION := 1.0.0
+PACKAGE_VERSION := 2.0.0
 ```
 
 Update user-facing documentation and release notes for public API, behavior, runtime dependency, and performance
 changes before packing.
+
+PdfiumRaster 2.0.0 intentionally changes the package target from .NET Standard 2.0 to .NET Standard 2.1. Confirm the
+release notes call out that .NET Framework and other .NET Standard 2.0-only consumers must remain on 1.0.x.
 
 ### 2. Run Release Checks
 
@@ -143,8 +146,8 @@ make inspect-package
 Verify the `.nupkg` contains:
 
 ```text
-lib/netstandard2.0/PdfiumRaster.dll
-lib/netstandard2.0/PdfiumRaster.xml
+lib/netstandard2.1/PdfiumRaster.dll
+lib/netstandard2.1/PdfiumRaster.xml
 README.md
 ```
 
@@ -160,7 +163,7 @@ SkiaSharp.NativeAssets.macOS
 SkiaSharp.NativeAssets.Win32
 ```
 
-Confirm that `lib/netstandard2.0/PdfiumRaster.xml` contains documentation entries for every newly added public API and
+Confirm that `lib/netstandard2.1/PdfiumRaster.xml` contains documentation entries for every newly added public API and
 that the package README examples match the packed version.
 
 ### 5. Smoke Test Local Package

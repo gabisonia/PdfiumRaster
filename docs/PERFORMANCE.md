@@ -49,6 +49,7 @@ Benchmarks cover:
 - Isolated non-seekable PDF loading allocation
 - Row-by-row versus contiguous BMP pixel output
 - Sequential versus two-buffer pipelined multi-page PNG and JPEG output
+- Managed versus PDFium-owned save buffers at 96, 144, and 300 DPI
 
 Use Release builds and compare allocated bytes as well as mean runtime. Some legacy image-output benchmarks call
 `MemoryStream.ToArray()` so BenchmarkDotNet can consume the result; that final byte-array allocation belongs to the
@@ -149,11 +150,11 @@ The expanded stream benchmark measured 38.44 ms for a four-request seekable batc
 non-seekable batch after the single-buffer change. The 0.2% difference is below benchmark noise, so buffering no longer
 adds a material throughput penalty for this input and render workload.
 
-Managed allocation for this end-to-end benchmark is dominated by occasional large `ArrayPool<byte>` rentals for
-rendered page buffers and varies with thread-pool scheduling, so it does not isolate the stream reader. The enforced
-memory invariant is deterministic: all seekable PDF inputs share one lazily rented scratch buffer, and native read
-requests larger than 64 KiB are copied in chunks. A PDFium callback can therefore no longer rent a temporary managed
-array proportional to the requested block size.
+Managed allocation for this end-to-end benchmark varies with thread-pool scheduling and does not isolate the stream
+reader. Save jobs now keep rendered pixels in PDFium-owned unmanaged buffers. The enforced input-memory invariant is
+deterministic: all seekable PDF inputs share one lazily rented scratch buffer, and native read requests larger than
+64 KiB are copied in chunks. A PDFium callback can therefore no longer rent a temporary managed array proportional to
+the requested block size.
 
 ### Non-Seekable Stream Loading
 
@@ -209,10 +210,14 @@ BMP output writes the contiguous `PdfBitmap.Pixels` buffer directly after its he
 every bitmap row without allocating another full-size image.
 
 `SaveDocument`, `SavePages`, and `SavePageNumbers` open the PDF once. Multi-page PNG, JPEG, and WebP output overlaps
-serialized rendering with two encoding workers and retains at most two reusable full-page bitmap leases. BMP and
-single-page output retain one lease and run sequentially.
+serialized rendering with two encoding workers and retains at most two reusable PDFium-owned bitmap leases. BMP and
+single-page output retain one native lease and run sequentially.
 
-`SavePage`, `SavePageNumber`, `SaveDocument`, `SavePages`, and `SavePageNumbers` render through pooled page bitmaps when writing directly to files or streams. Prefer save helpers when the rendered bitmap does not need to be returned to the caller.
+`SavePage`, `SavePageNumber`, `SaveDocument`, `SavePages`, and `SavePageNumbers` render into PDFium-owned unmanaged
+buffers when writing directly to files or streams. PNG, JPEG, and WebP encode directly from those pixels. BMP uses a
+bounded 64 KiB unmanaged span per stream write. Modern streams consume that span directly; the .NET compatibility
+fallback may rent bounded scratch storage. No save helper allocates or rents a managed array proportional to page
+pixels.
 
 Grayscale conversion uses PDFium grayscale rendering and skips a managed post-processing pass. Black-and-white conversion also renders through PDFium grayscale, then applies a threshold pass using the grayscale channel instead of recalculating RGB luminance for every pixel.
 
@@ -238,6 +243,37 @@ PDFium requires.
 document open, caches the current loaded page, and resizes its pooled native bitmap only when output dimensions
 change. Use the scoped callback overload when the pixels can be consumed synchronously; use the owned-bitmap or
 caller-destination overload when pixels must outlive the call.
+
+Run `make benchmark-native-buffer` to compare the former managed save-buffer design with the PDFium-owned buffer used
+by save-only workflows. Keep the native path only while it avoids full-page managed buffers without a material
+throughput regression.
+
+For a document-level cold-run comparison, use a local representative PDF:
+
+```bash
+make benchmark-all-pages PDF="tests/PdfiumRaster.Tests/TestAssets/annotations.pdf"
+```
+
+This opens the document once per separate process, renders and encodes every page sequentially, and reports CSV rows
+for both buffer strategies at 96, 144, and 300 DPI in every output format. Metrics include elapsed milliseconds,
+encoded bytes, total and maximum page-pixel bytes, managed allocation, sampled peak-working-set growth, and GC counts.
+The destination is a counting stream, so the result measures rendering and encoding without filesystem throughput.
+Compare a reverse-order or repeated sweep before treating a small timing difference as meaningful.
+
+The 2.0.0 gate was measured on an Apple M3 Pro with .NET 10.0.5 using the tracked annotation PDF and
+BenchmarkDotNet's short-run job. Ratios below compare native to managed mean time, grouped across 96, 144, and 300 DPI:
+
+| Format | Geometric mean ratio | Gate |
+| --- | ---: | --- |
+| BMP | 1.01x | Pass |
+| PNG | 1.02x | Pass |
+| JPEG | 1.01x | Pass |
+| WebP | 0.99x | Pass |
+
+All format-level ratios remain within the 1.05x maximum. Individual short-run measurements can be noisy, especially
+at 300 DPI, so retain the generated BenchmarkDotNet reports when investigating a regression. The structural memory
+gain is independent of the diagnoser's warmed `ArrayPool` accounting: save-only workflows no longer retain a managed
+array sized to the rendered page, and BMP writes at most 64 KiB per call.
 
 `PdfRenderDispatcher` bounds mixed-document concurrency. Its request queue stores descriptors and references, while
 `EncodingConcurrency` bounds full-size leased save buffers. With two encoding workers, at most two rendered save

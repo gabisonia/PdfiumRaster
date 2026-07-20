@@ -11,6 +11,7 @@ public static class PdfImageWriter
     private const int BitmapFileHeaderSize = 14;
     private const int BitmapInfoHeaderSize = 40;
     private const int BitsPerPixel = 32;
+    private const int NativeCopyBufferSize = 64 * 1024;
 
     /// <summary>
     /// Saves a bitmap as a BMP file.
@@ -180,10 +181,85 @@ public static class PdfImageWriter
             throw new ArgumentNullException(nameof(stream));
         }
 
-        var pixelDataSize = checked(bitmap.Stride * bitmap.Height);
+        var pixelDataSize = WriteBmpHeader(stream, bitmap.Width, bitmap.Height, bitmap.Stride);
+        stream.Write(bitmap.Pixels, 0, pixelDataSize);
+    }
+
+    internal static void Save(
+        PdfNativeBitmapLease bitmap,
+        string path,
+        PdfImageOutputFormat format,
+        PdfImageEncodingOptions options)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new ArgumentException("Path cannot be null or whitespace.", nameof(path));
+        }
+
+        using var stream = File.Create(path);
+        Write(bitmap, stream, format, options);
+    }
+
+    internal static void Write(
+        PdfNativeBitmapLease bitmap,
+        Stream stream,
+        PdfImageOutputFormat format,
+        PdfImageEncodingOptions options)
+    {
+        if (bitmap is null)
+        {
+            throw new ArgumentNullException(nameof(bitmap));
+        }
+
+        if (stream is null)
+        {
+            throw new ArgumentNullException(nameof(stream));
+        }
+
+        if (options is null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        switch (format)
+        {
+            case PdfImageOutputFormat.Bmp:
+                WriteBmp(bitmap, stream);
+                break;
+            case PdfImageOutputFormat.Png:
+                WriteEncoded(bitmap.Pixels, bitmap.Width, bitmap.Height, bitmap.Stride, stream,
+                    SKEncodedImageFormat.Png, options);
+                break;
+            case PdfImageOutputFormat.Jpeg:
+                WriteEncoded(bitmap.Pixels, bitmap.Width, bitmap.Height, bitmap.Stride, stream,
+                    SKEncodedImageFormat.Jpeg, options);
+                break;
+            case PdfImageOutputFormat.Webp:
+                WriteEncoded(bitmap.Pixels, bitmap.Width, bitmap.Height, bitmap.Stride, stream,
+                    SKEncodedImageFormat.Webp, options);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(format), format, "Image format is not supported.");
+        }
+    }
+
+    private static unsafe void WriteBmp(PdfNativeBitmapLease bitmap, Stream stream)
+    {
+        var pixelDataSize = WriteBmpHeader(stream, bitmap.Width, bitmap.Height, bitmap.Stride);
+        var offset = 0;
+        while (offset < pixelDataSize)
+        {
+            var count = Math.Min(NativeCopyBufferSize, pixelDataSize - offset);
+            stream.Write(new ReadOnlySpan<byte>((byte*)bitmap.Pixels + offset, count));
+            offset += count;
+        }
+    }
+
+    private static int WriteBmpHeader(Stream stream, int width, int height, int stride)
+    {
+        var pixelDataSize = checked(stride * height);
         var pixelOffset = BitmapFileHeaderSize + BitmapInfoHeaderSize;
         var fileSize = checked(pixelOffset + pixelDataSize);
-
         var header = new byte[pixelOffset];
 
         header[0] = (byte)'B';
@@ -191,15 +267,14 @@ public static class PdfImageWriter
         WriteInt32(header, 2, fileSize);
         WriteInt32(header, 10, pixelOffset);
         WriteInt32(header, 14, BitmapInfoHeaderSize);
-        WriteInt32(header, 18, bitmap.Width);
-        WriteInt32(header, 22, -bitmap.Height);
+        WriteInt32(header, 18, width);
+        WriteInt32(header, 22, -height);
         WriteUInt16(header, 26, 1);
         WriteUInt16(header, 28, BitsPerPixel);
         WriteInt32(header, 34, pixelDataSize);
 
         stream.Write(header, 0, header.Length);
-
-        stream.Write(bitmap.Pixels, 0, pixelDataSize);
+        return pixelDataSize;
     }
 
     private static void WriteInt32(byte[] buffer, int offset, int value)
@@ -256,25 +331,44 @@ public static class PdfImageWriter
 
         try
         {
-            var imageInfo = new SKImageInfo(bitmap.Width, bitmap.Height, SKColorType.Bgra8888, SKAlphaType.Unpremul);
-            using var pixmap = new SKPixmap(imageInfo, pinnedPixels.AddrOfPinnedObject(), bitmap.Stride);
-            var encoded = format switch
-            {
-                SKEncodedImageFormat.Png => EncodePng(pixmap, stream, options),
-                SKEncodedImageFormat.Jpeg => pixmap.Encode(stream, new SKJpegEncoderOptions(options.Quality)),
-                SKEncodedImageFormat.Webp => pixmap.Encode(stream,
-                    new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, options.Quality)),
-                _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Image format is not supported."),
-            };
-
-            if (!encoded)
-            {
-                throw new InvalidOperationException("Could not encode bitmap image.");
-            }
+            WriteEncoded(
+                pinnedPixels.AddrOfPinnedObject(),
+                bitmap.Width,
+                bitmap.Height,
+                bitmap.Stride,
+                stream,
+                format,
+                options);
         }
         finally
         {
             pinnedPixels.Free();
+        }
+    }
+
+    private static void WriteEncoded(
+        IntPtr pixels,
+        int width,
+        int height,
+        int stride,
+        Stream stream,
+        SKEncodedImageFormat format,
+        PdfImageEncodingOptions options)
+    {
+        var imageInfo = new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Unpremul);
+        using var pixmap = new SKPixmap(imageInfo, pixels, stride);
+        var encoded = format switch
+        {
+            SKEncodedImageFormat.Png => EncodePng(pixmap, stream, options),
+            SKEncodedImageFormat.Jpeg => pixmap.Encode(stream, new SKJpegEncoderOptions(options.Quality)),
+            SKEncodedImageFormat.Webp => pixmap.Encode(stream,
+                new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, options.Quality)),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Image format is not supported."),
+        };
+
+        if (!encoded)
+        {
+            throw new InvalidOperationException("Could not encode bitmap image.");
         }
     }
 

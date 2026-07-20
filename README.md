@@ -18,12 +18,29 @@ form filling, signing, or a viewer UI.
 - Produce color, grayscale, or thresholded black-and-white output
 - Query page count and page dimensions
 - Reuse document and bitmap resources for repeated rendering
+- Save directly from PDFium-owned pixel memory without a full-page managed buffer
 - Queue unrelated render requests with bounded backpressure
 - Restore native PDFium and SkiaSharp runtime assets through NuGet
 
+## PdfiumRaster And PDFiumCore
+
+[PDFiumCore](https://github.com/Dtronix/PDFiumCore) provides low-level .NET bindings for direct access to the PDFium
+C API. PdfiumRaster operates at a higher level and intentionally focuses on the complete PDF-to-image workflow.
+
+| Concern | PdfiumRaster | PDFiumCore |
+| --- | --- | --- |
+| API level | Document, page, conversion, session, and dispatcher APIs | Direct bindings that closely follow PDFium functions and handles |
+| Image output | Writes BMP, PNG, JPEG, and WebP | Exposes PDFium bitmap and rendering primitives; the application chooses how to encode or consume pixels |
+| Resource handling | Manages PDFium initialization, document/page lifetimes, stream callbacks, buffer reuse, and native-call serialization | Gives the application low-level control and responsibility for composing those concerns |
+| Scope | Deliberately limited to rendering PDF pages as images | Suitable when direct access to the broader PDFium API is required |
+
+Choose PdfiumRaster when the goal is reliable PDF-to-image conversion without building an interop and encoding layer.
+Choose PDFiumCore when the application needs lower-level PDFium features or precise control beyond PdfiumRaster's
+focused rendering API. The projects serve different layers rather than being drop-in replacements for each other.
+
 ## Requirements
 
-The library targets `netstandard2.0`. The application using it must run on a Windows, Linux, or macOS runtime
+The library targets `netstandard2.1`. The application using it must run on a Windows, Linux, or macOS runtime
 identifier supported by the PDFium and SkiaSharp packages in the dependency graph.
 
 ## Installation
@@ -33,6 +50,9 @@ dotnet add package PdfiumRaster
 ```
 
 No manual PDFium copy step is required for supported runtime identifiers.
+
+PdfiumRaster 2.0 and later require a runtime that implements .NET Standard 2.1. .NET Framework and other
+`netstandard2.0`-only consumers should remain on PdfiumRaster 1.0.x.
 
 ## Quick Start
 

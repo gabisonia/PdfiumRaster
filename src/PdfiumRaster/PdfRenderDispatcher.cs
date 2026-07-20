@@ -462,7 +462,7 @@ public sealed class PdfRenderDispatcher : IDisposable
     private async Task ProcessSaveJobAsync(SaveRenderJob job)
     {
         var slotAcquired = false;
-        PdfBitmapLease? lease = null;
+        PdfNativeBitmapLease? lease = null;
         try
         {
             await _encodingSlots.WaitAsync(job.CancellationToken).ConfigureAwait(false);
@@ -479,7 +479,7 @@ public sealed class PdfRenderDispatcher : IDisposable
             {
                 var renderOptions = PdfImageConverter.GetRenderOptions(job.Options);
                 var (width, height) = renderOptions.GetPixelSize(page.Width, page.Height);
-                lease = PdfBitmapLease.Rent(width, height, clear: false);
+                lease = PdfNativeBitmapLease.Create(width, height);
                 PdfImageConverter.RenderToLease(page, lease, renderOptions, job.Options);
             }
 
@@ -524,7 +524,7 @@ public sealed class PdfRenderDispatcher : IDisposable
                     }
                     else
                     {
-                        work.Job.Target.Write(work.Lease.Bitmap, work.Job.Options);
+                        work.Job.Target.Write(work.Lease, work.Job.Options);
                     }
                 }
                 catch (Exception exception)
@@ -906,7 +906,7 @@ public sealed class PdfRenderDispatcher : IDisposable
 
     private abstract class ImageTarget
     {
-        internal abstract void Write(PdfBitmap bitmap, PdfImageConversionOptions options);
+        internal abstract void Write(PdfNativeBitmapLease bitmap, PdfImageConversionOptions options);
     }
 
     private sealed class PathImageTarget : ImageTarget
@@ -918,7 +918,7 @@ public sealed class PdfRenderDispatcher : IDisposable
             _path = path;
         }
 
-        internal override void Write(PdfBitmap bitmap, PdfImageConversionOptions options)
+        internal override void Write(PdfNativeBitmapLease bitmap, PdfImageConversionOptions options)
         {
             PdfImageConverter.SaveBitmap(bitmap, _path, options.Format, options.Encoding);
         }
@@ -933,7 +933,7 @@ public sealed class PdfRenderDispatcher : IDisposable
             _stream = stream;
         }
 
-        internal override void Write(PdfBitmap bitmap, PdfImageConversionOptions options)
+        internal override void Write(PdfNativeBitmapLease bitmap, PdfImageConversionOptions options)
         {
             PdfImageConverter.SaveBitmap(bitmap, _stream, options.Format, options.Encoding);
         }
@@ -941,13 +941,13 @@ public sealed class PdfRenderDispatcher : IDisposable
 
     private sealed class EncodingWork
     {
-        internal EncodingWork(SaveRenderJob job, PdfBitmapLease lease)
+        internal EncodingWork(SaveRenderJob job, PdfNativeBitmapLease lease)
         {
             Job = job;
             Lease = lease;
         }
 
         internal SaveRenderJob Job { get; }
-        internal PdfBitmapLease Lease { get; }
+        internal PdfNativeBitmapLease Lease { get; }
     }
 }

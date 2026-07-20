@@ -31,7 +31,7 @@ method.
 ## Build And Test
 
 The .NET 10 SDK is required for the current test and benchmark projects. The library itself targets
-`netstandard2.0`.
+`netstandard2.1`.
 
 ```bash
 make restore
@@ -59,7 +59,7 @@ version, input asset, and exact command.
 
 ## Code Guidelines
 
-- Keep library code in `src/PdfiumRaster` and target `netstandard2.0`.
+- Keep library code in `src/PdfiumRaster` and target `netstandard2.1`.
 - Keep nullable reference types enabled and validate public arguments.
 - Add useful XML documentation to every public type, member, enum value, and overload.
 - State whether page values are zero-based indexes or 1-based numbers.

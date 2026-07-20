@@ -90,7 +90,7 @@ public class PdfDocumentPipelineBenchmarks
     }
 
     private void Encode(
-        PdfBitmap bitmap,
+        PdfNativeBitmapLease bitmap,
         string _,
         PdfImageOutputFormat format,
         PdfImageEncodingOptions encodingOptions)

@@ -21,7 +21,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="TestAssets\*.pdf" Exclude="TestAssets\annotations.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="TestAssets\*.pdf"
+          Exclude="TestAssets\annotations.pdf;TestAssets\Engineering Drawings.pdf"
+          CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestAssets\annotations.pdf" CopyToOutputDirectory="PreserveNewest" Condition="Exists('TestAssets\annotations.pdf')" />
   </ItemGroup>
 

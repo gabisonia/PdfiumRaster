@@ -471,6 +471,11 @@ internal sealed class CountingWriteStream : Stream
         BytesWritten = checked(BytesWritten + count);
     }
 
+    public override void Write(ReadOnlySpan<byte> buffer)
+    {
+        BytesWritten = checked(BytesWritten + buffer.Length);
+    }
+
     public override void Flush()
     {
     }

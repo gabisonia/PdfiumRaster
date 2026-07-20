@@ -11,7 +11,7 @@ public sealed class PdfBatchSavePipelineTests
         using var document = PdfDocument.Load(GetTestPdfPath("TestAssets/axf-annotation-1.pdf"));
         using var encodersStarted = new CountdownEvent(PdfBatchSavePipeline.BufferCount);
         var syncRoot = new object();
-        var pixelBuffers = new HashSet<byte[]>();
+        var pixelBuffers = new HashSet<IntPtr>();
         var activeEncoders = 0;
         var maximumActiveEncoders = 0;
         var startedEncoders = 0;

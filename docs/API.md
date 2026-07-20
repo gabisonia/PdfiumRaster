@@ -140,8 +140,8 @@ PdfRenderSession.Open(Stream pdfStream, bool leaveOpen = false, string? password
 Seekable streams use random access without a full managed copy. Non-seekable streams retain one buffered backing array.
 Byte arrays remain pinned and fully resident until the session is disposed.
 
-`SavePage` has file-path and stream overloads and uses the session-owned reusable buffer internally. Destination
-streams remain open:
+`SavePage` has file-path and stream overloads and uses a session-owned reusable PDFium buffer internally, avoiding a
+full-page managed pixel array. Destination streams remain open:
 
 ```csharp
 using var output = File.Create("page.png");
@@ -198,8 +198,8 @@ canceled while waiting for queue capacity, ownership does not transfer. Input an
 Do not write to an output stream or submit it to another concurrent job until its task completes.
 
 The dispatcher does not remove the process-wide native lock. PDF load/render operations remain serialized, while
-completed PNG, JPEG, WebP, or BMP writes may overlap up to `EncodingConcurrency`. At most that many rendered save
-buffers are retained by the pipeline. Encoded requests can therefore complete out of submission order. Use
+completed PNG, JPEG, WebP, or BMP writes may overlap up to `EncodingConcurrency`. At most that many PDFium-owned
+rendered save buffers are retained by the pipeline. Encoded requests can therefore complete out of submission order. Use
 `PdfRenderSession` for repeated pages from one document and multiple supervised processes for true PDFium parallelism.
 
 ## Saving Images
@@ -247,7 +247,8 @@ the operation. Single-page path helpers reopen the PDF on every call; prefer `Pd
 latency-sensitive single-page work.
 
 Multi-page PNG, JPEG, and WebP saves render through PDFium serially while two workers encode completed pages. At most
-two full rendered-page buffers are retained and reused. BMP and one-page saves remain sequential with one buffer.
+two PDFium-owned rendered-page buffers are retained and reused. BMP and one-page saves remain sequential with one
+native buffer.
 Generated filenames remain deterministic, although compressed files may finish in a different order. If a save
 fails, files completed before the failure remain in the output directory.
 

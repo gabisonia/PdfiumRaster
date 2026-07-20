@@ -136,6 +136,22 @@ internal static partial class PdfiumNative
         }
     }
 
+    internal static IntPtr FPDFBitmap_GetBuffer(IntPtr bitmap)
+    {
+        lock (SyncRoot)
+        {
+            return Imports.FPDFBitmap_GetBuffer(bitmap);
+        }
+    }
+
+    internal static int FPDFBitmap_GetStride(IntPtr bitmap)
+    {
+        lock (SyncRoot)
+        {
+            return Imports.FPDFBitmap_GetStride(bitmap);
+        }
+    }
+
     internal static void FPDFBitmap_FillRect(IntPtr bitmap, int left, int top, int width, int height, uint color)
     {
         lock (SyncRoot)
@@ -300,6 +316,12 @@ internal static partial class PdfiumNative
 
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
         internal static extern void FPDFBitmap_Destroy(IntPtr bitmap);
+
+        [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr FPDFBitmap_GetBuffer(IntPtr bitmap);
+
+        [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int FPDFBitmap_GetStride(IntPtr bitmap);
 
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
         internal static extern void FPDFBitmap_FillRect(IntPtr bitmap, int left, int top, int width, int height,

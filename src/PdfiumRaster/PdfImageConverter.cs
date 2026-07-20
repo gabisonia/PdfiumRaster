@@ -1053,10 +1053,10 @@ public static class PdfImageConverter
         using var page = document.LoadPage(pageIndex);
 
         var renderOptions = GetRenderOptions(options);
-        using var bitmapLease = RentBitmapLease(page, renderOptions);
-        var bitmap = RenderToLease(page, bitmapLease, renderOptions, options);
+        using var bitmapLease = RentNativeBitmapLease(page, renderOptions);
+        RenderToLease(page, bitmapLease, renderOptions, options);
 
-        SaveBitmap(bitmap, imagePath, options.Format, GetEncodingOptions(options));
+        SaveBitmap(bitmapLease, imagePath, options.Format, GetEncodingOptions(options));
     }
 
     private static void SavePageDirect(
@@ -1071,10 +1071,10 @@ public static class PdfImageConverter
         using var page = document.LoadPage(pageIndex);
 
         var renderOptions = GetRenderOptions(options);
-        using var bitmapLease = RentBitmapLease(page, renderOptions);
-        var bitmap = RenderToLease(page, bitmapLease, renderOptions, options);
+        using var bitmapLease = RentNativeBitmapLease(page, renderOptions);
+        RenderToLease(page, bitmapLease, renderOptions, options);
 
-        SaveBitmap(bitmap, imageStream, options.Format, GetEncodingOptions(options));
+        SaveBitmap(bitmapLease, imageStream, options.Format, GetEncodingOptions(options));
     }
 
     private static IEnumerable<PdfBitmap> RenderPages(
@@ -1208,18 +1208,18 @@ public static class PdfImageConverter
         string extension,
         PdfBatchBitmapEncoder encoder)
     {
-        PdfBitmapLease? bitmapLease = null;
+        PdfNativeBitmapLease? bitmapLease = null;
 
         try
         {
             foreach (var pageIndex in pageIndexes)
             {
                 using var page = document.LoadPage(pageIndex);
-                bitmapLease = EnsureBitmapLease(bitmapLease, page, renderOptions);
-                var bitmap = RenderToLease(page, bitmapLease, renderOptions, options);
+                bitmapLease = EnsureNativeBitmapLease(bitmapLease, page, renderOptions);
+                RenderToLease(page, bitmapLease, renderOptions, options);
                 var imagePath = Path.Combine(outputDirectory, $"{fileNamePrefix}-{pageIndex + 1:D4}{extension}");
 
-                encoder(bitmap, imagePath, options.Format, encodingOptions);
+                encoder(bitmapLease, imagePath, options.Format, encodingOptions);
             }
         }
         finally
@@ -1293,10 +1293,29 @@ public static class PdfImageConverter
         return PdfBitmapLease.Rent(width, height, clear: false);
     }
 
-    private static PdfBitmapLease RentBitmapLease(PdfPage page, PdfPageRenderOptions renderOptions)
+    internal static PdfNativeBitmapLease EnsureNativeBitmapLease(
+        PdfNativeBitmapLease? bitmapLease,
+        PdfPage page,
+        PdfPageRenderOptions renderOptions)
     {
         var (width, height) = renderOptions.GetPixelSize(page.Width, page.Height);
-        return PdfBitmapLease.Rent(width, height, clear: false);
+        if (bitmapLease is not null)
+        {
+            if (bitmapLease.Width == width && bitmapLease.Height == height)
+            {
+                return bitmapLease;
+            }
+
+            bitmapLease.Dispose();
+        }
+
+        return PdfNativeBitmapLease.Create(width, height);
+    }
+
+    private static PdfNativeBitmapLease RentNativeBitmapLease(PdfPage page, PdfPageRenderOptions renderOptions)
+    {
+        var (width, height) = renderOptions.GetPixelSize(page.Width, page.Height);
+        return PdfNativeBitmapLease.Create(width, height);
     }
 
     internal static PdfBitmap RenderToLease(
@@ -1315,6 +1334,72 @@ public static class PdfImageConverter
         ApplyConversionColorMode(bitmap, options);
 
         return bitmap;
+    }
+
+    internal static void RenderToLease(
+        PdfPage page,
+        PdfNativeBitmapLease bitmapLease,
+        PdfPageRenderOptions renderOptions,
+        PdfImageConversionOptions options)
+    {
+        if (!renderOptions.FillBackground)
+        {
+            bitmapLease.Clear();
+        }
+
+        page.Render(bitmapLease, renderOptions);
+        ApplyConversionColorMode(bitmapLease, options);
+    }
+
+    internal static void SaveBitmap(
+        PdfNativeBitmapLease bitmap,
+        string path,
+        PdfImageOutputFormat format,
+        PdfImageEncodingOptions encoding)
+    {
+        PdfImageWriter.Save(bitmap, path, format, encoding);
+    }
+
+    internal static void SaveBitmap(
+        PdfNativeBitmapLease bitmap,
+        Stream stream,
+        PdfImageOutputFormat format,
+        PdfImageEncodingOptions encoding)
+    {
+        PdfImageWriter.Write(bitmap, stream, format, encoding);
+    }
+
+    internal static unsafe void ApplyConversionColorMode(
+        PdfNativeBitmapLease bitmap,
+        PdfImageConversionOptions options)
+    {
+        switch (options.ColorMode)
+        {
+            case PdfImageColorMode.Color:
+            case PdfImageColorMode.Grayscale:
+                return;
+            case PdfImageColorMode.BlackAndWhite:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(options.ColorMode), options.ColorMode,
+                    "Image color mode is not supported.");
+        }
+
+        var pixels = (byte*)bitmap.Pixels;
+        var threshold = options.BlackAndWhiteThreshold;
+
+        for (var y = 0; y < bitmap.Height; y++)
+        {
+            var row = pixels + checked(y * bitmap.Stride);
+            for (var x = 0; x < bitmap.Width; x++)
+            {
+                var pixel = row + checked(x * 4);
+                var value = pixel[0] >= threshold ? byte.MaxValue : byte.MinValue;
+                pixel[0] = value;
+                pixel[1] = value;
+                pixel[2] = value;
+            }
+        }
     }
 
     private static void ClearPixelRegion(PdfBitmap bitmap)

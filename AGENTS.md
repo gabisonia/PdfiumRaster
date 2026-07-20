@@ -16,7 +16,7 @@ PdfiumRaster is a .NET Standard PDF-to-image library backed by PDFium. Keep the 
 
 ## Coding Style
 
-- Target `netstandard2.0` for the library.
+- Target `netstandard2.1` for the library.
 - Keep nullable reference types enabled and maintain null/argument validation on public APIs.
 - Add XML documentation comments for every public type, member, enum value, and overload.
 - Keep XML comments useful for NuGet IntelliSense: mention page indexes vs page numbers, units such as pixels/PDF points/DPI, stream ownership, and memory behavior.

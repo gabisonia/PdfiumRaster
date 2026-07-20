@@ -14,6 +14,7 @@ public sealed class PdfRenderSession : IDisposable
     private PdfPage? _cachedPage;
     private int _cachedPageIndex = -1;
     private PdfBitmapLease? _bitmapLease;
+    private PdfNativeBitmapLease? _nativeBitmapLease;
     private int _operationActive;
     private int _disposed;
 
@@ -239,7 +240,7 @@ public sealed class PdfRenderSession : IDisposable
         EnterOperation();
         try
         {
-            var bitmap = RenderToSessionBuffer(pageIndex, options);
+            var bitmap = RenderToSessionNativeBuffer(pageIndex, options);
             PdfImageConverter.SaveBitmap(
                 bitmap,
                 imagePath,
@@ -269,7 +270,7 @@ public sealed class PdfRenderSession : IDisposable
         EnterOperation();
         try
         {
-            var bitmap = RenderToSessionBuffer(pageIndex, options);
+            var bitmap = RenderToSessionNativeBuffer(pageIndex, options);
             PdfImageConverter.SaveBitmap(
                 bitmap,
                 imageStream,
@@ -306,6 +307,8 @@ public sealed class PdfRenderSession : IDisposable
 
             _bitmapLease?.Dispose();
             _bitmapLease = null;
+            _nativeBitmapLease?.Dispose();
+            _nativeBitmapLease = null;
             _cachedPage?.Dispose();
             _cachedPage = null;
             _document.Dispose();
@@ -319,10 +322,25 @@ public sealed class PdfRenderSession : IDisposable
 
     private PdfBitmap RenderToSessionBuffer(int pageIndex, PdfImageConversionOptions options)
     {
+        _nativeBitmapLease?.Dispose();
+        _nativeBitmapLease = null;
+
         var page = GetPage(pageIndex);
         var renderOptions = PdfImageConverter.GetRenderOptions(options);
         _bitmapLease = PdfImageConverter.EnsureBitmapLease(_bitmapLease, page, renderOptions);
         return PdfImageConverter.RenderToLease(page, _bitmapLease, renderOptions, options);
+    }
+
+    private PdfNativeBitmapLease RenderToSessionNativeBuffer(int pageIndex, PdfImageConversionOptions options)
+    {
+        _bitmapLease?.Dispose();
+        _bitmapLease = null;
+
+        var page = GetPage(pageIndex);
+        var renderOptions = PdfImageConverter.GetRenderOptions(options);
+        _nativeBitmapLease = PdfImageConverter.EnsureNativeBitmapLease(_nativeBitmapLease, page, renderOptions);
+        PdfImageConverter.RenderToLease(page, _nativeBitmapLease, renderOptions, options);
+        return _nativeBitmapLease;
     }
 
     private PdfPage GetPage(int pageIndex)
