@@ -7,8 +7,8 @@
 PdfiumRaster is a .NET Standard library for rendering PDF pages to BMP, PNG, JPEG, or WebP images. PDFium handles
 page rendering; SkiaSharp handles compressed image encoding.
 
-The project is intentionally limited to PDF-to-image conversion. It does not provide PDF editing, text extraction,
-form filling, signing, or a viewer UI.
+**The project is intentionally limited to PDF-to-image conversion. It does not provide PDF editing, text extraction,
+form filling, signing, or a viewer UI.**
 
 ## Features
 
