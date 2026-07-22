@@ -3,7 +3,7 @@ SOLUTION := PdfiumRaster.slnx
 PROJECT := src/PdfiumRaster/PdfiumRaster.csproj
 CONFIGURATION := Release
 ARTIFACTS_DIR := artifacts
-PACKAGE_VERSION := 2.0.0
+PACKAGE_VERSION := 2.0.1
 PACKAGE := $(ARTIFACTS_DIR)/PdfiumRaster.$(PACKAGE_VERSION).nupkg
 
 .PHONY: help restore build test test-local pack inspect-package smoke-package benchmark benchmark-compare benchmark-session benchmark-encoding benchmark-dispatcher benchmark-bmp benchmark-pipeline benchmark-native-buffer benchmark-all-pages release-check clean
@@ -93,7 +93,7 @@ benchmark:
 	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts --filter '*'
 
 benchmark-compare:
-	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts --filter '*PdfiumCoreComparisonBenchmarks*'
+	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts --filter '*PdfiumCore*ComparisonBenchmarks*'
 
 benchmark-session:
 	dotnet run -c Release --project benchmarks/PdfiumRaster.Benchmarks/PdfiumRaster.Benchmarks.csproj -- --artifacts BenchmarkDotNet.Artifacts --filter '*PdfRenderSessionBenchmarks*'

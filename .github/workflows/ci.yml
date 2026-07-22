@@ -46,7 +46,7 @@ jobs:
           cd "$tmpdir/PdfiumRasterCompatibility"
           dotnet new nugetconfig --force
           dotnet nuget add source "$GITHUB_WORKSPACE/artifacts" --name local --configfile nuget.config
-          dotnet add package PdfiumRaster --version 2.0.0
+          dotnet add package PdfiumRaster --version 2.0.1
           dotnet build --configuration Release
 
       - name: Smoke test package install

@@ -1,16 +1,17 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <PdfiumNativeVersion>152.0.7947</PdfiumNativeVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.2" />
-    <PackageVersion Include="bblanchon.PDFium.Linux" Version="151.0.7891" />
-    <PackageVersion Include="bblanchon.PDFium.macOS" Version="151.0.7891" />
-    <PackageVersion Include="bblanchon.PDFium.Win32" Version="151.0.7891" />
+    <PackageVersion Include="bblanchon.PDFium.Linux" Version="$(PdfiumNativeVersion)" />
+    <PackageVersion Include="bblanchon.PDFium.macOS" Version="$(PdfiumNativeVersion)" />
+    <PackageVersion Include="bblanchon.PDFium.Win32" Version="$(PdfiumNativeVersion)" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-    <PackageVersion Include="PDFiumCore" Version="151.0.7891" />
+    <PackageVersion Include="PDFiumCore" Version="$(PdfiumNativeVersion)" />
     <PackageVersion Include="SkiaSharp" Version="3.119.4" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.4" />
     <PackageVersion Include="SkiaSharp.NativeAssets.macOS" Version="3.119.4" />

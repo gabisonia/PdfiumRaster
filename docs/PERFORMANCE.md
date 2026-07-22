@@ -41,7 +41,7 @@ Benchmarks cover:
 - Saving all pages as PNG and JPEG
 - Saving selected pages
 - Applying color, grayscale, and black-and-white color conversion
-- An equivalent hot-render comparison with PDFiumCore
+- Equivalent hot-render and end-to-end fast-PNG comparisons with PDFiumCore
 - Legacy reopen versus owned, caller-owned, and scoped `PdfRenderSession` rendering at 96, 144, and 300 DPI
 - Isolated PNG encoding at the Skia default and zlib compression levels 1, 6, and 9
 - Sequential batches versus `PdfRenderDispatcher` batches for raw rendering and fast PNG output
@@ -186,7 +186,10 @@ Run only the wrapper comparison with:
 make benchmark-compare
 ```
 
-The comparison intentionally uses PDFiumCore `151.0.7891`, matching PdfiumRaster's PDFium native packages. Both paths:
+The comparison uses one central PDFium version property. PDFiumCore and PdfiumRaster's Linux, macOS, and Windows
+native packages are all pinned to `152.0.7947` so generated bindings and native assets cannot drift independently.
+
+The hot-render benchmark keeps wrapper responsibilities equivalent. Both paths:
 
 - Use the same loaded native PDFium library in each benchmark process
 - Keep the document and page open
@@ -196,10 +199,33 @@ The comparison intentionally uses PDFiumCore `151.0.7891`, matching PdfiumRaster
 - Read one output byte so the rendered result remains observable
 - Exclude image encoding and file output
 
-The latest comparison measured 1.543 ms for PdfiumRaster and 1.545 ms for PDFiumCore, with zero managed allocation
-per render. The confidence intervals overlap, so the wrappers are effectively tied under equivalent hot-render
-conditions. Treat these numbers as a local baseline and rerun the benchmark on every target platform and
-representative PDF corpus.
+Benchmark setup also verifies the PDFiumCore bitmap dimensions and stride and requires exact raw-pixel equality before
+timing begins. The July 2026 matched-version run measured:
+
+| Hot render | Mean | 99.9% confidence interval | Managed allocation |
+| --- | ---: | ---: | ---: |
+| PdfiumRaster, open page and reused bitmap | 1.483 ms | 1.470-1.496 ms | 0 B |
+| PDFiumCore, open page and reused bitmap | 1.493 ms | 1.484-1.503 ms | 0 B |
+
+The confidence intervals overlap and the rounded ratio was 1.01, so the wrappers remain effectively tied under
+equivalent hot-render conditions.
+
+The second comparison measures a complete one-page workflow. Each operation opens the tracked PDF, loads its first
+page, renders at 144 DPI, encodes PNG with SkiaSharp compression level 1, writes to a counting destination, and closes
+all per-operation resources. One-time PDFium process initialization stays outside the timed region. The PDFiumCore
+method is explicitly PDFiumCore plus the application-owned SkiaSharp integration required to match PdfiumRaster:
+
+| File-to-fast-PNG workflow | Mean | 99.9% confidence interval | Managed allocation |
+| --- | ---: | ---: | ---: |
+| PdfiumRaster | 34.72 ms | 34.64-34.80 ms | 848 B |
+| PDFiumCore plus SkiaSharp | 34.72 ms | 34.65-34.79 ms | 648 B |
+
+These confidence intervals also overlap. The small managed-allocation difference is per-operation wrapper and option
+bookkeeping, not a page-sized pixel buffer; both paths render into PDFium-owned memory and encode directly from its
+BGRA pixels. The benchmark validates both PNG signatures and decoded dimensions outside the timed operations.
+
+Treat both comparisons as local baselines and rerun them on every target platform and representative PDF corpus. The
+hot test measures wrapper overhead; the PNG test measures workflow composition. Neither is a universal speed ranking.
 
 ## Current Memory Optimizations
 

@@ -25,19 +25,22 @@ page rendering; SkiaSharp handles compressed image encoding.
 
 ## PdfiumRaster And PDFiumCore
 
-[PDFiumCore](https://github.com/Dtronix/PDFiumCore) provides low-level .NET bindings for direct access to the PDFium
-C API. PdfiumRaster operates at a higher level and intentionally focuses on the complete PDF-to-image workflow.
+[PDFiumCore](https://github.com/Dtronix/PDFiumCore) and PdfiumRaster call the same native PDFium renderer, but they
+serve different layers. PDFiumCore generates broad .NET bindings for the PDFium C API. PdfiumRaster provides an
+owned, rendering-only workflow on top of a small direct native surface.
 
 | Concern | PdfiumRaster | PDFiumCore |
 | --- | --- | --- |
-| API level | Document, page, conversion, session, and dispatcher APIs | Direct bindings that closely follow PDFium functions and handles |
-| Image output | Writes BMP, PNG, JPEG, and WebP | Exposes PDFium bitmap and rendering primitives; the application chooses how to encode or consume pixels |
-| Resource handling | Manages PDFium initialization, document/page lifetimes, stream callbacks, buffer reuse, and native-call serialization | Gives the application low-level control and responsibility for composing those concerns |
-| Scope | Deliberately limited to rendering PDF pages as images | Suitable when direct access to the broader PDFium API is required |
+| Main job | Convert PDF pages to BMP, PNG, JPEG, or WebP | Expose PDFium functions and native handles |
+| Ownership | Manages initialization, callbacks, render buffers, and normal cleanup | The application composes and closes native resources |
+| Concurrency | Serializes PDFium calls and can overlap image encoding | The application supplies its own threading policy |
+| Best fit | Reliable PDF-to-image conversion | Direct access to PDFium beyond a rendering workflow |
 
 Choose PdfiumRaster when the goal is reliable PDF-to-image conversion without building an interop and encoding layer.
 Choose PDFiumCore when the application needs lower-level PDFium features or precise control beyond PdfiumRaster's
-focused rendering API. The projects serve different layers rather than being drop-in replacements for each other.
+focused rendering API. See the
+[detailed comparison](https://github.com/gabisonia/PdfiumRaster/blob/master/docs/PDFIUMCORE-COMPARISON.md) for
+equivalent code, ownership, memory behavior, benchmarks, and the additive safety roadmap.
 
 ## Requirements
 
