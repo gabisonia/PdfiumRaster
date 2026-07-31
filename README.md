@@ -58,6 +58,11 @@ No manual PDFium copy step is required for supported runtime identifiers.
 PdfiumRaster 2.0 and later require a runtime that implements .NET Standard 2.1. .NET Framework and other
 `netstandard2.0`-only consumers should remain on PdfiumRaster 1.0.x.
 
+## Multi-process Rendering
+
+For parallel rendering through isolated PDFium worker processes, see the separate
+[PdfiumRaster.Orchestrator repository](https://github.com/gabisonia/PdfiumRaster.Orchestrator).
+
 ## Quick Start
 
 Render the first page to PNG. Page-number methods use 1-based numbers:
