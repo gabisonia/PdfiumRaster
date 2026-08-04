@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/gabisonia/PdfiumRaster/security/advisories/new
+    about: Do not disclose vulnerabilities or sensitive proof-of-concept PDFs in a public issue.

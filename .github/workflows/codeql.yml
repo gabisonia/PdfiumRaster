@@ -1,0 +1,54 @@
+name: CodeQL
+
+on:
+  push:
+    branches:
+      - master
+      - release-*
+  pull_request:
+    branches:
+      - master
+      - release-*
+  schedule:
+    - cron: "17 3 * * 4"
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  analyze:
+    name: Analyze C#
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@9e3211c9a3b9311dfe05da2ed48eea3386f042dd # v4.37.6
+        with:
+          languages: csharp
+          build-mode: manual
+          queries: security-extended
+
+      - name: Restore
+        run: dotnet restore PdfiumRaster.slnx
+
+      - name: Build
+        run: dotnet build PdfiumRaster.slnx --configuration Release --no-restore
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@9e3211c9a3b9311dfe05da2ed48eea3386f042dd # v4.37.6
+        with:
+          category: /language:csharp

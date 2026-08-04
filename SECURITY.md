@@ -10,14 +10,19 @@ relevant even when the managed API is unchanged.
 
 Do not disclose a suspected vulnerability or a proof-of-concept document in a public issue.
 
-If it is available for the repository, use
-[GitHub's private vulnerability reporting](https://github.com/gabisonia/PdfiumRaster/security/advisories/new). Otherwise,
-open a public issue asking the maintainer for a private contact channel, without including exploit details or a
-sensitive PDF. Include the affected version, operating system and architecture, impact, reproduction conditions, and
-whether the report may be disclosed after a fix is available.
+Use [GitHub's private vulnerability reporting](https://github.com/gabisonia/PdfiumRaster/security/advisories/new).
+Do not open a public issue containing exploit details or a sensitive PDF. Include the affected version, operating
+system and architecture, impact, reproduction conditions, and whether the report may be disclosed after a fix is
+available.
 
 There is no guaranteed response or remediation SLA. Reports will be assessed based on reproducibility, impact, and
 whether the issue is in PdfiumRaster, its native dependencies, or the consuming application.
+
+## Automated Security Checks
+
+The repository uses Dependabot alerts and update pull requests, dependency review, CodeQL code scanning, secret
+scanning with push protection, and OpenSSF Scorecard analysis. These checks reduce risk but do not replace review of
+native PDFium updates or application-level isolation for untrusted documents.
 
 ## Using PdfiumRaster With Untrusted PDFs
 

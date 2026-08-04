@@ -1,0 +1,58 @@
+version: 2
+
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Amsterdam
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    commit-message:
+      prefix: deps
+    groups:
+      pdfium:
+        patterns:
+          - PDFiumCore
+          - bblanchon.PDFium.*
+      skiasharp:
+        patterns:
+          - SkiaSharp
+          - SkiaSharp.*
+      nuget-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      nuget-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:30"
+      timezone: Europe/Amsterdam
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: ci
+    groups:
+      github-actions-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      github-actions-security:
+        applies-to: security-updates
+        patterns:
+          - "*"

@@ -1,0 +1,41 @@
+name: Feature request
+description: Propose a focused improvement to PDF-to-image rendering.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        PdfiumRaster is intentionally limited to PDF-to-image conversion. PDF editing, text extraction, form filling, signing, and viewer UI are outside its scope.
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: Describe the rendering problem and who benefits from solving it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-api
+    attributes:
+      label: Proposed behavior or API
+      description: Show a short usage example if the request changes the public API.
+      render: csharp
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Explain why the existing render options or APIs do not cover the use case.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This request is specifically about rendering PDF pages to images.
+          required: true

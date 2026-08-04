@@ -1,0 +1,75 @@
+name: Bug report
+description: Report a reproducible PdfiumRaster rendering or runtime problem.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve PdfiumRaster. Do not attach confidential PDFs or disclose security vulnerabilities here; use the private security reporting link instead.
+
+  - type: input
+    id: version
+    attributes:
+      label: PdfiumRaster version
+      placeholder: 2.0.1
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Include the .NET runtime, operating system, runtime identifier, and processor architecture.
+      placeholder: .NET 10.0.7, Ubuntu 24.04, linux-x64
+    validations:
+      required: true
+
+  - type: dropdown
+    id: input-type
+    attributes:
+      label: PDF input type
+      options:
+        - File path
+        - Seekable stream
+        - Non-seekable stream
+        - Byte array
+        - Base64 string
+        - Not applicable
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem
+      description: Describe what happened and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include the smallest code sample and render or encoding options that reproduce the problem.
+      render: csharp
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Exception and logs
+      description: Include the exception type, message, stack trace, and relevant logs. Remove secrets and private data.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched existing issues for this problem.
+          required: true
+        - label: This report does not contain a confidential PDF, secret, or undisclosed vulnerability.
+          required: true

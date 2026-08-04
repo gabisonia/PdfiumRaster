@@ -2,6 +2,8 @@
 
 [![NuGet](https://img.shields.io/nuget/v/PdfiumRaster.svg)](https://www.nuget.org/packages/PdfiumRaster)
 [![CI](https://github.com/gabisonia/PdfiumRaster/actions/workflows/ci.yml/badge.svg)](https://github.com/gabisonia/PdfiumRaster/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/gabisonia/PdfiumRaster/actions/workflows/codeql.yml/badge.svg)](https://github.com/gabisonia/PdfiumRaster/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/gabisonia/PdfiumRaster/badge)](https://scorecard.dev/viewer/?uri=github.com/gabisonia/PdfiumRaster)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/gabisonia/PdfiumRaster/blob/master/LICENSE)
 
 PdfiumRaster is a .NET Standard library for rendering PDF pages to BMP, PNG, JPEG, or WebP images. PDFium handles
