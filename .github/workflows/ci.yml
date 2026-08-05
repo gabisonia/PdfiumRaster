@@ -75,7 +75,7 @@ jobs:
             </packageSources>
           </configuration>
           XML
-          dotnet add package PdfiumRaster
+          dotnet add package PdfiumRaster --version 2.0.2
           cp "$GITHUB_WORKSPACE/tests/PdfiumRaster.Tests/TestAssets/axf-annotation-1.pdf" ./annotations.pdf
           cat > Program.cs <<'CS'
           using PdfiumRaster;
