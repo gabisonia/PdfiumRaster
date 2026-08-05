@@ -1,11 +1,11 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <PdfiumNativeVersion>152.0.7947</PdfiumNativeVersion>
+    <PdfiumNativeVersion>152.0.7961</PdfiumNativeVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageVersion Include="BenchmarkDotNet" Version="0.15.2" />
+    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageVersion Include="bblanchon.PDFium.Linux" Version="$(PdfiumNativeVersion)" />
     <PackageVersion Include="bblanchon.PDFium.macOS" Version="$(PdfiumNativeVersion)" />
     <PackageVersion Include="bblanchon.PDFium.Win32" Version="$(PdfiumNativeVersion)" />
@@ -18,6 +18,6 @@
     <PackageVersion Include="SkiaSharp.NativeAssets.Win32" Version="4.151.0" />
     <PackageVersion Include="System.Threading.Channels" Version="10.0.10" />
     <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
   </ItemGroup>
 </Project>
