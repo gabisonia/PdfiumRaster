@@ -174,6 +174,49 @@ public sealed class PdfRenderDispatcherTests
     }
 
     [Fact]
+    public async Task Pre_canceled_submission_disposes_owned_input_stream()
+    {
+        var pdfBytes = File.ReadAllBytes(GetTestPdfPath("smoke.pdf"));
+        var ownedInput = new TrackingMemoryStream(pdfBytes);
+        using var cancellation = new CancellationTokenSource();
+        using var dispatcher = new PdfRenderDispatcher();
+        cancellation.Cancel();
+
+        var submission = dispatcher.RenderPageAsync(
+            ownedInput,
+            0,
+            PreviewOptions(),
+            cancellationToken: cancellation.Token);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => submission);
+        Assert.True(ownedInput.IsDisposed);
+    }
+
+    [Fact]
+    public async Task Rejected_submission_disposes_owned_input_stream()
+    {
+        var pdfBytes = File.ReadAllBytes(GetTestPdfPath("smoke.pdf"));
+        using var blocker = new BlockingReadStream(pdfBytes);
+        var ownedInput = new TrackingMemoryStream(pdfBytes);
+        using var dispatcher = new PdfRenderDispatcher(new PdfRenderDispatcherOptions
+        {
+            QueueCapacity = 1,
+            QueueFullMode = PdfRenderQueueFullMode.Reject,
+        });
+
+        var active = dispatcher.RenderPageAsync(blocker, 0, PreviewOptions(), leaveOpen: true);
+        blocker.WaitUntilReadStarted();
+        var queued = dispatcher.RenderPageAsync(GetTestPdfPath("smoke.pdf"), 0, PreviewOptions());
+        var rejected = dispatcher.RenderPageAsync(ownedInput, 0, PreviewOptions());
+
+        await Assert.ThrowsAsync<PdfRenderQueueFullException>(() => rejected);
+        Assert.True(ownedInput.IsDisposed);
+
+        blocker.Release();
+        await Task.WhenAll(active, queued);
+    }
+
+    [Fact]
     public async Task Encoding_workers_can_write_two_images_concurrently()
     {
         using var firstOutput = new BlockingWriteStream();

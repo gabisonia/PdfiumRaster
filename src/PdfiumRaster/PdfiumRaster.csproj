@@ -8,13 +8,14 @@
     <AssemblyName>PdfiumRaster</AssemblyName>
     <RootNamespace>PdfiumRaster</RootNamespace>
     <PackageId>PdfiumRaster</PackageId>
-    <VersionPrefix>2.0.1</VersionPrefix>
+    <VersionPrefix>2.0.2</VersionPrefix>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PathMap>$(MSBuildProjectDirectory)=/_/src/PdfiumRaster</PathMap>
     <Authors>PdfiumRaster contributors</Authors>
     <Title>PdfiumRaster</Title>
     <Description>PDFium-backed .NET Standard 2.1 library for rendering PDF pages to images.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Fixes owned input-stream cleanup when PdfRenderDispatcher requests fail before queue admission.</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageTags>pdf;pdfium;raster;image;converter</PackageTags>
@@ -29,6 +30,7 @@
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="" />
+    <None Include="..\..\CHANGELOG.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>

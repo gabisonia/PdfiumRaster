@@ -3,7 +3,7 @@ SOLUTION := PdfiumRaster.slnx
 PROJECT := src/PdfiumRaster/PdfiumRaster.csproj
 CONFIGURATION := Release
 ARTIFACTS_DIR := artifacts
-PACKAGE_VERSION := 2.0.1
+PACKAGE_VERSION := 2.0.2
 PACKAGE := $(ARTIFACTS_DIR)/PdfiumRaster.$(PACKAGE_VERSION).nupkg
 
 .PHONY: help restore build test test-local pack inspect-package smoke-package benchmark benchmark-compare benchmark-session benchmark-encoding benchmark-dispatcher benchmark-bmp benchmark-pipeline benchmark-native-buffer benchmark-all-pages release-check clean

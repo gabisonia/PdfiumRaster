@@ -86,8 +86,8 @@ Keep `PACKAGE_VERSION` in the root `Makefile` synchronized with `VersionPrefix`.
 PACKAGE_VERSION := 2.0.0
 ```
 
-Update user-facing documentation and release notes for public API, behavior, runtime dependency, and performance
-changes before packing.
+Update `CHANGELOG.md` and other user-facing documentation for public API, behavior, runtime dependency, and performance
+changes before packing. Ensure the project package metadata contains a concise `PackageReleaseNotes` summary.
 
 PdfiumRaster 2.0.0 intentionally changes the package target from .NET Standard 2.0 to .NET Standard 2.1. Confirm the
 release notes call out that .NET Framework and other .NET Standard 2.0-only consumers must remain on 1.0.x.

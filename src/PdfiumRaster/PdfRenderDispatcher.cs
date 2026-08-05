@@ -336,13 +336,31 @@ public sealed class PdfRenderDispatcher : IDisposable
 
     private async Task<PdfBitmap> SubmitAsync(BitmapRenderJob job)
     {
-        await EnqueueAsync(job).ConfigureAwait(false);
+        try
+        {
+            await EnqueueAsync(job).ConfigureAwait(false);
+        }
+        catch
+        {
+            job.CleanupInput();
+            throw;
+        }
+
         return await job.Task.ConfigureAwait(false);
     }
 
     private async Task SubmitAsync(SaveRenderJob job)
     {
-        await EnqueueAsync(job).ConfigureAwait(false);
+        try
+        {
+            await EnqueueAsync(job).ConfigureAwait(false);
+        }
+        catch
+        {
+            job.CleanupInput();
+            throw;
+        }
+
         await job.Task.ConfigureAwait(false);
     }
 
