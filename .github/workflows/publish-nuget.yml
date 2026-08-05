@@ -72,7 +72,7 @@ jobs:
           echo "Package version: $package_version"
 
       - name: Restore
-        run: dotnet restore PdfiumRaster.slnx
+        run: dotnet restore PdfiumRaster.slnx --locked-mode
 
       - name: Test
         run: dotnet test PdfiumRaster.slnx --configuration Release --no-restore --filter "Category!=Local"

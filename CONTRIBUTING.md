@@ -39,6 +39,9 @@ make build
 make test
 ```
 
+NuGet lock files are committed for reproducible CI and release builds. After intentionally changing a package
+version, run `make restore` and include the resulting `packages.lock.json` updates in the same pull request.
+
 `make test` runs the tracked test suite. To test a private or large annotation-heavy document, place it at
 `tests/PdfiumRaster.Tests/TestAssets/annotations.pdf`; that path is ignored by Git. Then run:
 
