@@ -1036,7 +1036,10 @@ public static class PdfImageConverter
             for (var i = 0; i < pixels.Length; i++)
             {
                 var pixel = pixels[i];
-                pixels[i] = (pixel & 0xFF000000u) | ((pixel & 0xFFu) >= threshold ? 0x00FFFFFFu : 0u);
+                // Branch-free blue >= threshold: the sign of (blue - threshold) selects all-white
+                // or all-black RGB lanes, keeping throughput flat on unpredictable pixel data.
+                var mask = (uint)~(((int)(pixel & 0xFFu) - threshold) >> 31) & 0x00FFFFFFu;
+                pixels[i] = (pixel & 0xFF000000u) | mask;
             }
 
             return;
