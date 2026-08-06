@@ -949,41 +949,45 @@ public static class PdfImageConverter
 
     private static void ApplyGrayscale(PdfBitmap bitmap)
     {
-        var pixels = bitmap.Pixels;
+        var height = bitmap.Height;
+        var stride = bitmap.Stride;
+        var rowBytes = bitmap.Width * 4;
+        var pixels = bitmap.Pixels.AsSpan();
 
-        for (var y = 0; y < bitmap.Height; y++)
+        for (var y = 0; y < height; y++)
         {
-            var rowOffset = y * bitmap.Stride;
+            var row = pixels.Slice(y * stride, rowBytes);
 
-            for (var x = 0; x < bitmap.Width; x++)
+            for (var offset = 0; offset < row.Length; offset += 4)
             {
-                var offset = rowOffset + x * 4;
-                var gray = GetLuminance(pixels[offset + 2], pixels[offset + 1], pixels[offset]);
+                var gray = GetLuminance(row[offset + 2], row[offset + 1], row[offset]);
 
-                pixels[offset] = gray;
-                pixels[offset + 1] = gray;
-                pixels[offset + 2] = gray;
+                row[offset] = gray;
+                row[offset + 1] = gray;
+                row[offset + 2] = gray;
             }
         }
     }
 
     private static void ApplyBlackAndWhite(PdfBitmap bitmap, byte threshold)
     {
-        var pixels = bitmap.Pixels;
+        var height = bitmap.Height;
+        var stride = bitmap.Stride;
+        var rowBytes = bitmap.Width * 4;
+        var pixels = bitmap.Pixels.AsSpan();
 
-        for (var y = 0; y < bitmap.Height; y++)
+        for (var y = 0; y < height; y++)
         {
-            var rowOffset = y * bitmap.Stride;
+            var row = pixels.Slice(y * stride, rowBytes);
 
-            for (var x = 0; x < bitmap.Width; x++)
+            for (var offset = 0; offset < row.Length; offset += 4)
             {
-                var offset = rowOffset + x * 4;
-                var gray = GetLuminance(pixels[offset + 2], pixels[offset + 1], pixels[offset]);
+                var gray = GetLuminance(row[offset + 2], row[offset + 1], row[offset]);
                 var value = gray >= threshold ? byte.MaxValue : byte.MinValue;
 
-                pixels[offset] = value;
-                pixels[offset + 1] = value;
-                pixels[offset + 2] = value;
+                row[offset] = value;
+                row[offset + 1] = value;
+                row[offset + 2] = value;
             }
         }
     }
