@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace PdfiumRaster;
 
 /// <summary>
@@ -947,62 +949,109 @@ public static class PdfImageConverter
 
     private static void ApplyGrayscale(PdfBitmap bitmap)
     {
-        var pixels = bitmap.Pixels;
+        var height = bitmap.Height;
+        var stride = bitmap.Stride;
+        var rowBytes = bitmap.Width * 4;
+        var pixels = bitmap.Pixels.AsSpan();
 
-        for (var y = 0; y < bitmap.Height; y++)
+        for (var y = 0; y < height; y++)
         {
-            var rowOffset = y * bitmap.Stride;
+            var row = pixels.Slice(y * stride, rowBytes);
 
-            for (var x = 0; x < bitmap.Width; x++)
+            for (var offset = 0; offset < row.Length; offset += 4)
             {
-                var offset = rowOffset + x * 4;
-                var gray = GetLuminance(pixels[offset + 2], pixels[offset + 1], pixels[offset]);
+                var gray = GetLuminance(row[offset + 2], row[offset + 1], row[offset]);
 
-                pixels[offset] = gray;
-                pixels[offset + 1] = gray;
-                pixels[offset + 2] = gray;
+                row[offset] = gray;
+                row[offset + 1] = gray;
+                row[offset + 2] = gray;
             }
         }
     }
 
     private static void ApplyBlackAndWhite(PdfBitmap bitmap, byte threshold)
     {
-        var pixels = bitmap.Pixels;
+        var height = bitmap.Height;
+        var stride = bitmap.Stride;
+        var rowBytes = bitmap.Width * 4;
+        var pixels = bitmap.Pixels.AsSpan();
 
-        for (var y = 0; y < bitmap.Height; y++)
+        for (var y = 0; y < height; y++)
         {
-            var rowOffset = y * bitmap.Stride;
+            var row = pixels.Slice(y * stride, rowBytes);
 
-            for (var x = 0; x < bitmap.Width; x++)
+            for (var offset = 0; offset < row.Length; offset += 4)
             {
-                var offset = rowOffset + x * 4;
-                var gray = GetLuminance(pixels[offset + 2], pixels[offset + 1], pixels[offset]);
+                var gray = GetLuminance(row[offset + 2], row[offset + 1], row[offset]);
                 var value = gray >= threshold ? byte.MaxValue : byte.MinValue;
 
-                pixels[offset] = value;
-                pixels[offset + 1] = value;
-                pixels[offset + 2] = value;
+                row[offset] = value;
+                row[offset + 1] = value;
+                row[offset + 2] = value;
             }
         }
     }
 
     private static void ApplyBlackAndWhiteFromGrayscale(PdfBitmap bitmap, byte threshold)
     {
-        var pixels = bitmap.Pixels;
+        ApplyBlackAndWhiteFromGrayscaleCore(
+            bitmap.Pixels.AsSpan(0, checked(bitmap.Stride * bitmap.Height)),
+            bitmap.Width,
+            bitmap.Height,
+            bitmap.Stride,
+            threshold);
+    }
 
-        for (var y = 0; y < bitmap.Height; y++)
+    private static void ApplyBlackAndWhiteFromGrayscaleCore(
+        Span<byte> pixels,
+        int width,
+        int height,
+        int stride,
+        byte threshold)
+    {
+        var rowBytes = width * 4;
+        // Rows start 4-byte aligned only when the stride keeps them that way; odd strides fall
+        // back to the byte loop because unaligned uint access is undefined on some targets.
+        var useUIntRows = BitConverter.IsLittleEndian && (stride & 3) == 0;
+
+        if (stride == rowBytes)
         {
-            var rowOffset = y * bitmap.Stride;
+            ApplyBlackAndWhiteFromGrayscaleRun(pixels, threshold, useUIntRows);
+            return;
+        }
 
-            for (var x = 0; x < bitmap.Width; x++)
+        for (var y = 0; y < height; y++)
+        {
+            ApplyBlackAndWhiteFromGrayscaleRun(pixels.Slice(y * stride, rowBytes), threshold, useUIntRows);
+        }
+    }
+
+    private static void ApplyBlackAndWhiteFromGrayscaleRun(Span<byte> run, byte threshold, bool useUIntRun)
+    {
+        if (useUIntRun)
+        {
+            // BGRA on little-endian: blue is the low byte and alpha the high byte of each uint.
+            var pixels = MemoryMarshal.Cast<byte, uint>(run);
+
+            for (var i = 0; i < pixels.Length; i++)
             {
-                var offset = rowOffset + x * 4;
-                var value = pixels[offset] >= threshold ? byte.MaxValue : byte.MinValue;
-
-                pixels[offset] = value;
-                pixels[offset + 1] = value;
-                pixels[offset + 2] = value;
+                var pixel = pixels[i];
+                // Branch-free blue >= threshold: the sign of (blue - threshold) selects all-white
+                // or all-black RGB lanes, keeping throughput flat on unpredictable pixel data.
+                var mask = (uint)~(((int)(pixel & 0xFFu) - threshold) >> 31) & 0x00FFFFFFu;
+                pixels[i] = (pixel & 0xFF000000u) | mask;
             }
+
+            return;
+        }
+
+        for (var offset = 0; offset < run.Length; offset += 4)
+        {
+            var value = run[offset] >= threshold ? byte.MaxValue : byte.MinValue;
+
+            run[offset] = value;
+            run[offset + 1] = value;
+            run[offset + 2] = value;
         }
     }
 
@@ -1385,21 +1434,12 @@ public static class PdfImageConverter
                     "Image color mode is not supported.");
         }
 
-        var pixels = (byte*)bitmap.Pixels;
-        var threshold = options.BlackAndWhiteThreshold;
-
-        for (var y = 0; y < bitmap.Height; y++)
-        {
-            var row = pixels + checked(y * bitmap.Stride);
-            for (var x = 0; x < bitmap.Width; x++)
-            {
-                var pixel = row + checked(x * 4);
-                var value = pixel[0] >= threshold ? byte.MaxValue : byte.MinValue;
-                pixel[0] = value;
-                pixel[1] = value;
-                pixel[2] = value;
-            }
-        }
+        ApplyBlackAndWhiteFromGrayscaleCore(
+            new Span<byte>((void*)bitmap.Pixels, bitmap.PixelDataSize),
+            bitmap.Width,
+            bitmap.Height,
+            bitmap.Stride,
+            options.BlackAndWhiteThreshold);
     }
 
     private static void ClearPixelRegion(PdfBitmap bitmap)
