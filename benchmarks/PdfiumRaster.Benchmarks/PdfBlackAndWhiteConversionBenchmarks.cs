@@ -17,6 +17,7 @@ public class PdfBlackAndWhiteConversionBenchmarks
     private PdfImageConversionOptions _options = null!;
     private PdfPageRenderOptions _renderOptions = null!;
     private PdfNativeBitmapLease _thresholdLease = null!;
+    private byte[] _grayscaleSnapshot = [];
     private int _width;
     private int _height;
 
@@ -40,7 +41,24 @@ public class PdfBlackAndWhiteConversionBenchmarks
         _renderOptions = PdfImageConverter.GetRenderOptions(_options);
         (_width, _height) = _renderOptions.GetPixelSize(_page.Width, _page.Height);
         _thresholdLease = PdfNativeBitmapLease.Create(_width, _height);
-        PdfImageConverter.RenderToLease(_page, _thresholdLease, _renderOptions, _options);
+
+        // Render once without thresholding so ThresholdPass sees realistic grayscale input,
+        // and snapshot the pixels so each iteration restores the same pre-threshold state.
+        PdfImageConverter.RenderToLease(_page, _thresholdLease, _renderOptions, new PdfImageConversionOptions
+        {
+            ColorMode = PdfImageColorMode.Grayscale,
+            Render = _options.Render,
+        });
+        _grayscaleSnapshot = new byte[_thresholdLease.PixelDataSize];
+        System.Runtime.InteropServices.Marshal.Copy(
+            _thresholdLease.Pixels, _grayscaleSnapshot, 0, _grayscaleSnapshot.Length);
+    }
+
+    [IterationSetup(Target = nameof(ThresholdPass))]
+    public void RestoreGrayscalePixels()
+    {
+        System.Runtime.InteropServices.Marshal.Copy(
+            _grayscaleSnapshot, 0, _thresholdLease.Pixels, _grayscaleSnapshot.Length);
     }
 
     [GlobalCleanup]
