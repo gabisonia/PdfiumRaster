@@ -163,6 +163,17 @@ The normal test suite uses tracked assets and excludes local-only tests:
 make test
 ```
 
+Coverage is collected with Coverlet and enforced at 80% line coverage:
+
+```bash
+make coverage
+```
+
+FsCheck property tests generate managed rendering and pixel inputs. Random malformed PDF fuzzing must run in a
+separately supervised process because PDFium is native code and a parser failure can terminate the test host. An
+isolated fuzz worker should enforce input-size, execution-time, memory, and crash limits and preserve crashing inputs
+as regression-test corpus entries.
+
 Local-only tests use ignored assets such as `tests/PdfiumRaster.Tests/TestAssets/annotations.pdf` and are marked with `Category=Local`:
 
 ```bash

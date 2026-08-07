@@ -3,10 +3,12 @@ SOLUTION := PdfiumRaster.slnx
 PROJECT := src/PdfiumRaster/PdfiumRaster.csproj
 CONFIGURATION := Release
 ARTIFACTS_DIR := artifacts
-PACKAGE_VERSION := 2.0.2
+PACKAGE_VERSION := $(shell dotnet msbuild $(PROJECT) -getProperty:PackageVersion)
 PACKAGE := $(ARTIFACTS_DIR)/PdfiumRaster.$(PACKAGE_VERSION).nupkg
+COVERAGE_DIR := $(ARTIFACTS_DIR)/coverage
+COVERAGE_MIN_LINE_RATE := 0.80
 
-.PHONY: help restore build test test-local pack inspect-package smoke-package benchmark benchmark-compare benchmark-session benchmark-encoding benchmark-dispatcher benchmark-bmp benchmark-pipeline benchmark-native-buffer benchmark-all-pages release-check clean
+.PHONY: help restore build test test-local coverage pack inspect-package smoke-package benchmark benchmark-compare benchmark-session benchmark-encoding benchmark-dispatcher benchmark-bmp benchmark-pipeline benchmark-native-buffer benchmark-all-pages release-check clean
 
 help:
 	@printf '%s\n' \
@@ -15,6 +17,7 @@ help:
 		'  make build            Build the solution in Release mode' \
 		'  make test             Run the test suite, excluding local-only tests' \
 		'  make test-local       Run local-only tests that use ignored assets' \
+		'  make coverage         Run tests and enforce the minimum line coverage' \
 		'  make pack             Create NuGet and symbol packages' \
 		'  make inspect-package  List package contents and nuspec metadata' \
 		'  make smoke-package    Install the local package in a fresh app and render a page' \
@@ -31,7 +34,7 @@ help:
 		'  make clean            Remove build and package outputs'
 
 restore:
-	dotnet restore $(SOLUTION)
+	dotnet restore $(SOLUTION) --locked-mode
 
 build:
 	dotnet build $(SOLUTION) -c $(CONFIGURATION) --no-restore
@@ -41,6 +44,16 @@ test:
 
 test-local:
 	dotnet test $(SOLUTION) --filter "Category=Local"
+
+coverage: restore
+	@set -euo pipefail; \
+	coverage_run_dir="$(COVERAGE_DIR)/$$(date +%Y%m%d%H%M%S)"; \
+	dotnet test tests/PdfiumRaster.Tests/PdfiumRaster.Tests.csproj -c $(CONFIGURATION) --no-restore --filter "Category!=Local" --collect:"XPlat Code Coverage" --results-directory "$$coverage_run_dir" -p:CoverageBuild=true; \
+	coverage_file="$$(find "$$coverage_run_dir" -type f -name coverage.cobertura.xml | head -n 1)"; \
+	if [[ -z "$$coverage_file" ]]; then printf '%s\n' 'Coverage report was not produced.' >&2; exit 1; fi; \
+	line_rate="$$(sed -n 's/.*line-rate="\([^"]*\)".*/\1/p' "$$coverage_file" | head -n 1)"; \
+	if [[ -z "$$line_rate" ]]; then printf '%s\n' 'Coverage report does not contain a line rate.' >&2; exit 1; fi; \
+	awk -v actual="$$line_rate" -v minimum="$(COVERAGE_MIN_LINE_RATE)" 'BEGIN { printf "Line coverage: %.2f%% (minimum %.2f%%)\n", actual * 100, minimum * 100; exit actual < minimum }'
 
 pack:
 	dotnet pack $(PROJECT) -c $(CONFIGURATION) -o $(ARTIFACTS_DIR)
@@ -126,7 +139,7 @@ benchmark-all-pages:
 		done; \
 	done
 
-release-check: test pack inspect-package smoke-package
+release-check: test coverage pack inspect-package smoke-package
 
 clean:
 	dotnet clean $(SOLUTION)

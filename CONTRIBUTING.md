@@ -37,6 +37,7 @@ The .NET 10 SDK is required for the current test and benchmark projects. The lib
 make restore
 make build
 make test
+make coverage
 ```
 
 NuGet lock files are committed for reproducible CI and release builds. After intentionally changing a package
@@ -56,6 +57,11 @@ make pack
 make inspect-package
 ```
 
+`make coverage` collects Cobertura coverage for the library and enforces at least 80% line coverage. Property-based
+tests exercise managed input and rendering invariants with generated values. Random malformed PDFs must not be fuzzed
+inside the normal test host because a native PDFium failure can terminate that process; use a separately supervised
+worker with explicit time, memory, and crash limits for native-input fuzzing.
+
 If a change affects rendering speed or memory use, run the relevant target documented in
 [docs/PERFORMANCE.md](docs/PERFORMANCE.md). Benchmark results should include the machine, operating system, .NET
 version, input asset, and exact command.
@@ -65,6 +71,7 @@ version, input asset, and exact command.
 - Keep library code in `src/PdfiumRaster` and target `netstandard2.1`.
 - Keep nullable reference types enabled and validate public arguments.
 - Add useful XML documentation to every public type, member, enum value, and overload.
+- Keep production builds warning-free; compiler warnings are treated as errors by the library project.
 - State whether page values are zero-based indexes or 1-based numbers.
 - State units such as pixels, PDF points, and DPI, plus stream ownership and material memory behavior.
 - Keep all native PDFium calls in `PdfiumNative` and serialized through the shared lock.
