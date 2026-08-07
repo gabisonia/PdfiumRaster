@@ -8,7 +8,7 @@
     <AssemblyName>PdfiumRaster</AssemblyName>
     <RootNamespace>PdfiumRaster</RootNamespace>
     <PackageId>PdfiumRaster</PackageId>
-    <VersionPrefix>2.0.2</VersionPrefix>
+    <VersionPrefix>2.0.3</VersionPrefix>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PathMap>$(MSBuildProjectDirectory)=/_/src/PdfiumRaster</PathMap>
     <Authors>PdfiumRaster contributors</Authors>
