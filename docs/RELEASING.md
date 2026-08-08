@@ -79,15 +79,13 @@ Use semantic versioning, for example:
 
 The manual workflow can override this with `/p:PackageVersion=<version>`, so updating `VersionPrefix` is mostly for source consistency.
 
-Keep `PACKAGE_VERSION` in the root `Makefile` synchronized with `VersionPrefix`. The local `inspect-package` and
-`smoke-package` targets use that value to locate and install the package:
-
-```make
-PACKAGE_VERSION := 2.0.0
-```
+The root `Makefile` resolves `PackageVersion` from the project automatically, so its package inspection and smoke-test
+targets use the version declared by the project.
 
 Update `CHANGELOG.md` and other user-facing documentation for public API, behavior, runtime dependency, and performance
 changes before packing. Ensure the project package metadata contains a concise `PackageReleaseNotes` summary.
+For each release, identify every fixed vulnerability that had a CVE or similar public identifier at release time. If
+the release fixes no publicly known PdfiumRaster vulnerability, state that explicitly in its release record.
 
 PdfiumRaster 2.0.0 intentionally changes the package target from .NET Standard 2.0 to .NET Standard 2.1. Confirm the
 release notes call out that .NET Framework and other .NET Standard 2.0-only consumers must remain on 1.0.x.
@@ -99,9 +97,10 @@ make clean
 make release-check
 ```
 
-This runs the normal test suite, creates the NuGet and symbol packages, inspects the package contents, installs the
-local package into a fresh console app with an isolated NuGet cache, and renders through both the synchronous converter
-and concurrent dispatcher to confirm the managed dependency graph and native assets load correctly.
+This runs the normal test suite, enforces at least 80% line coverage, creates the NuGet and symbol packages, inspects
+the package contents, installs the local package into a fresh console app with an isolated NuGet cache, and renders
+through both the synchronous converter and concurrent dispatcher to confirm the managed dependency graph and native
+assets load correctly.
 
 Local-only tests use ignored assets such as `tests/PdfiumRaster.Tests/TestAssets/annotations.pdf` and are not part of `make release-check`. Run them separately when the local asset exists:
 
@@ -203,8 +202,8 @@ native-runtime update.
 ### 8. Tag And Record The Release
 
 ```bash
-git tag v<version>
-git push origin v<version>
+git tag <version>
+git push origin <version>
 ```
 
 Create the tag from the exact commit that produced the published package, then attach or link the `.nupkg`, `.snupkg`,

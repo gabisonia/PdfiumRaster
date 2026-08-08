@@ -247,6 +247,7 @@ execution time. Public argument validation does not impose application-specific 
 - [Performance and benchmarks](https://github.com/gabisonia/PdfiumRaster/blob/master/docs/PERFORMANCE.md)
 - [Contributing](https://github.com/gabisonia/PdfiumRaster/blob/master/CONTRIBUTING.md)
 - [Security policy](https://github.com/gabisonia/PdfiumRaster/blob/master/SECURITY.md)
+- [OpenSSF Best Practices evidence](https://github.com/gabisonia/PdfiumRaster/blob/master/docs/OPENSSF-BEST-PRACTICES.md)
 - [Release process](https://github.com/gabisonia/PdfiumRaster/blob/master/docs/RELEASING.md)
 
 ## Development
@@ -257,8 +258,12 @@ The repository uses the root `Makefile` as its command surface:
 make restore
 make build
 make test
+make coverage
 make pack
 ```
+
+`make coverage` produces a Cobertura report under `artifacts/coverage/` and enforces the project's 80% minimum line
+coverage.
 
 See the [contribution guide](https://github.com/gabisonia/PdfiumRaster/blob/master/CONTRIBUTING.md) before opening a
 pull request.

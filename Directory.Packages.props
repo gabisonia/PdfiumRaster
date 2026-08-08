@@ -11,6 +11,7 @@
     <PackageVersion Include="bblanchon.PDFium.macOS" Version="$(PdfiumNativeVersion)" />
     <PackageVersion Include="bblanchon.PDFium.Win32" Version="$(PdfiumNativeVersion)" />
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
+    <PackageVersion Include="FsCheck.Xunit" Version="3.3.4" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageVersion Include="PDFiumCore" Version="$(PdfiumNativeVersion)" />
     <PackageVersion Include="SkiaSharp" Version="4.151.0" />

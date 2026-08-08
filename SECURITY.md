@@ -15,8 +15,19 @@ Do not open a public issue containing exploit details or a sensitive PDF. Includ
 system and architecture, impact, reproduction conditions, and whether the report may be disclosed after a fix is
 available.
 
-There is no guaranteed response or remediation SLA. Reports will be assessed based on reproducibility, impact, and
-whether the issue is in PdfiumRaster, its native dependencies, or the consuming application.
+## Response And Remediation Targets
+
+- A maintainer will acknowledge a private vulnerability report within 14 calendar days.
+- Confirmed vulnerabilities in PdfiumRaster will be assessed and coordinated through a private GitHub security
+  advisory until a fix and disclosure are ready.
+- A publicly known vulnerability of medium or higher severity will be fixed within 60 days. If a complete fix cannot
+  be released in that period, the project will publish the current status, available mitigations, and expected next
+  steps without disclosing information that would put users at additional risk.
+- Critical vulnerabilities are prioritized for the earliest practical fix and release.
+
+Reports are assessed based on reproducibility, impact, and whether the issue is in PdfiumRaster, its native
+dependencies, or the consuming application. Dependency vulnerabilities are handled by updating or constraining the
+affected dependency and publishing appropriate upgrade guidance.
 
 ## Automated Security Checks
 

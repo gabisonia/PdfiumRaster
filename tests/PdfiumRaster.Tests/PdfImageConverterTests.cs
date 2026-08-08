@@ -132,6 +132,41 @@ public sealed class PdfImageConverterTests
     }
 
     [Fact]
+    public void RenderDocument_lazily_renders_every_page()
+    {
+        var bitmaps = PdfImageConverter.RenderDocument(
+                GetTestPdfPath("TestAssets/smoke.pdf"),
+                new PdfImageConversionOptions
+                {
+                    Render = new PdfPageRenderOptions { Dpi = 36 },
+                })
+            .ToArray();
+
+        Assert.Single(bitmaps);
+        Assert.All(bitmaps, bitmap =>
+        {
+            Assert.True(bitmap.Width > 0);
+            Assert.True(bitmap.Height > 0);
+        });
+    }
+
+    [Fact]
+    public void RenderPages_lazily_renders_selected_indexes_in_requested_order()
+    {
+        var bitmaps = PdfImageConverter.RenderPages(
+                GetTestPdfPath("TestAssets/axf-annotation-1.pdf"),
+                [1, 0],
+                new PdfImageConversionOptions
+                {
+                    Render = new PdfPageRenderOptions { Dpi = 36 },
+                })
+            .ToArray();
+
+        Assert.Equal(2, bitmaps.Length);
+        Assert.All(bitmaps, bitmap => Assert.Contains(bitmap.Pixels, pixel => pixel != 0));
+    }
+
+    [Fact]
     public void RenderPageNumber_rejects_zero_page_number()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() =>
