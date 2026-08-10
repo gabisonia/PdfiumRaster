@@ -2,7 +2,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <PdfiumNativeVersion>152.0.7961</PdfiumNativeVersion>
+    <PdfiumNativeVersion>153.0.7988</PdfiumNativeVersion>
   </PropertyGroup>
 
   <ItemGroup>
