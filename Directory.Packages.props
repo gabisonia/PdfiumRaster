@@ -2,7 +2,8 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <PdfiumNativeVersion>152.0.7961</PdfiumNativeVersion>
+    <PdfiumNativeVersion>153.0.7988</PdfiumNativeVersion>
+    <PdfiumCoreVersion>152.0.7961</PdfiumCoreVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,7 +14,7 @@
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
     <PackageVersion Include="FsCheck.Xunit" Version="3.3.4" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
-    <PackageVersion Include="PDFiumCore" Version="$(PdfiumNativeVersion)" />
+    <PackageVersion Include="PDFiumCore" Version="$(PdfiumCoreVersion)" />
     <PackageVersion Include="SkiaSharp" Version="4.151.1" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.151.1" />
     <PackageVersion Include="SkiaSharp.NativeAssets.macOS" Version="4.151.1" />
