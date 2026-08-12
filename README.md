@@ -62,8 +62,15 @@ PdfiumRaster 2.0 and later require a runtime that implements .NET Standard 2.1. 
 
 ## Multi-process Rendering
 
-For parallel rendering through isolated PDFium worker processes, see the separate
-[PdfiumRaster.Orchestrator repository](https://github.com/gabisonia/PdfiumRaster.Orchestrator).
+PDFium is not thread-safe, so PdfiumRaster intentionally serializes native rendering calls within a process.
+Concurrent requests can overlap image encoding and output I/O, but they do not execute PDFium rendering in parallel.
+
+For true parallel rendering, use the companion
+[PdfiumRaster.Orchestrator](https://github.com/gabisonia/PdfiumRaster.Orchestrator) project. It builds on PdfiumRaster
+and runs a bounded pool of isolated local worker processes, each with its own PDFium runtime. The process boundary also
+provides crash isolation, hard request timeouts, and automatic worker replacement. Workers run with the same operating
+system identity and permissions as the calling application, so process isolation should not be treated as a security
+sandbox. See the Orchestrator repository for installation, configuration, and deployment guidance.
 
 ## Quick Start
 
