@@ -66,6 +66,17 @@ If a change affects rendering speed or memory use, run the relevant target docum
 [docs/PERFORMANCE.md](docs/PERFORMANCE.md). Benchmark results should include the machine, operating system, .NET
 version, input asset, and exact command.
 
+## Dependency Updates
+
+Dependabot checks for NuGet package updates every Monday at 06:00 and GitHub Actions updates every Monday at 06:30.
+Both times use the `Europe/Amsterdam` time zone. The exact update groups and pull request limits are defined in
+[`.github/dependabot.yml`](.github/dependabot.yml).
+
+Dependabot pull requests run the same cross-platform [CI workflow](.github/workflows/ci.yml) as other pull requests,
+plus the [dependency review workflow](.github/workflows/dependency-review.yml). Dependency review rejects newly
+introduced vulnerabilities of moderate or greater severity. Security updates are grouped separately from routine
+minor and patch updates where Dependabot supports grouping them.
+
 ## Code Guidelines
 
 - Keep library code in `src/PdfiumRaster` and target `netstandard2.1`.
