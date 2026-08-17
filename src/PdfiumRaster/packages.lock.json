@@ -4,21 +4,21 @@
     ".NETStandard,Version=v2.1": {
       "bblanchon.PDFium.Linux": {
         "type": "Direct",
-        "requested": "[153.0.7988, )",
-        "resolved": "153.0.7988",
-        "contentHash": "P5LmbC39eCmExD39vWR+zqOeQTONlHujHfaw31jxhzCgaVAaab6PNV5YsZNyMDm4A75eu0WX5OJNgQ5g3YxIzA=="
+        "requested": "[153.0.7999, )",
+        "resolved": "153.0.7999",
+        "contentHash": "He1njGDo6BxJ0zv/64lmwrEOv6gvupG63ofQwlBxN7VR6d/uUWRgVVHhJ3RioD/F73DZZWxjV5arsWBJU/MUjg=="
       },
       "bblanchon.PDFium.macOS": {
         "type": "Direct",
-        "requested": "[153.0.7988, )",
-        "resolved": "153.0.7988",
-        "contentHash": "5miV87lfySc/rCM+51+Btn5QJfoxOL9+iO6QJ/i9PZP/ZhDrQMoLlqQAFNWQg5T9kM6VKNd2KncyN/xqyhClrw=="
+        "requested": "[153.0.7999, )",
+        "resolved": "153.0.7999",
+        "contentHash": "YHmLuaaj1ePoOtUqh9An6FJAF/PEpxIBcCaJcbhh8DvPY4SuN2B166w1UoTYQ411o3r7O14EvmEtuzryA0ZxsQ=="
       },
       "bblanchon.PDFium.Win32": {
         "type": "Direct",
-        "requested": "[153.0.7988, )",
-        "resolved": "153.0.7988",
-        "contentHash": "hTaAYlICDb1CtXwkmPeuEgHLbfvx5tak6z8Jk4wUY6wdo7Kq4Xoa2VUjVC/vte0G5IxlVDyrD7iLNWt45lpKHw=="
+        "requested": "[153.0.7999, )",
+        "resolved": "153.0.7999",
+        "contentHash": "UA+k9T6A1k5dqjFJEDkhmN4F/X/Z0IYLUhV05mmIMAxpxB5KNikGrb27j3RSzpVDJviraJLF4YRFBmeRcnx6wg=="
       },
       "SkiaSharp": {
         "type": "Direct",
