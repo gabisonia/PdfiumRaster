@@ -51,9 +51,9 @@
       },
       "System.Threading.Channels": {
         "type": "Direct",
-        "requested": "[10.0.10, )",
-        "resolved": "10.0.10",
-        "contentHash": "O4jTqxreMrNt9vYzPF4jQkbVNjRBrQPye5N9IYMcBpKWbCiKnnCz+I72I4jBGuGbDaadH9Lz5vrelFrvViW9Ow=="
+        "requested": "[10.0.11, )",
+        "resolved": "10.0.11",
+        "contentHash": "UvDZ9CCHB+4NX2lI+QvT1MFb4Ly4iw0KmQ1/WokHc4yFD6SoQ9Odxy1e0TRAN4ncqMkJulfeBDzugNwn0GMFUA=="
       },
       "System.Runtime.CompilerServices.Unsafe": {
         "type": "Transitive",
