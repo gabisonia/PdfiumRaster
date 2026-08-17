@@ -22,13 +22,13 @@
       },
       "PDFiumCore": {
         "type": "Direct",
-        "requested": "[152.0.7961, )",
-        "resolved": "152.0.7961",
-        "contentHash": "zHOH9qmY7VIeddBJ3ayYw5uLitZX6hB6PVNy1+EEz+5t28SjjFdGlTUKGOi/kCQKuXkmFnz1X1kw6eYB9UWPKw==",
+        "requested": "[153.0.7999, )",
+        "resolved": "153.0.7999",
+        "contentHash": "bm16fxh0SUiH45PT62Qj12seDsDyiXwO55oojLRxCOlVbDCh6TwGnN2qSptpOGn0ctFjalhWKtWi60s5qiGfBQ==",
         "dependencies": {
-          "bblanchon.PDFium.Linux": "152.0.7961",
-          "bblanchon.PDFium.Win32": "152.0.7961",
-          "bblanchon.PDFium.macOS": "152.0.7961"
+          "bblanchon.PDFium.Linux": "153.0.7999",
+          "bblanchon.PDFium.Win32": "153.0.7999",
+          "bblanchon.PDFium.macOS": "153.0.7999"
         }
       },
       "BenchmarkDotNet.Annotations": {

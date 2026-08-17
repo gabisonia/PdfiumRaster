@@ -3,7 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <PdfiumNativeVersion>153.0.7999</PdfiumNativeVersion>
-    <PdfiumCoreVersion>152.0.7961</PdfiumCoreVersion>
+    <PdfiumCoreVersion>153.0.7999</PdfiumCoreVersion>
   </PropertyGroup>
 
   <ItemGroup>
