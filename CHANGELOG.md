@@ -6,6 +6,8 @@ All notable changes to PdfiumRaster are documented in this file.
 
 ### Changed
 
+- Updated the native PDFium runtime packages from 153.0.7999 to 153.0.8009.
+- Updated FsCheck.Xunit from 3.3.4 to 3.4.0.
 - CI now resolves the package version from the project and smoke-tests the package produced by the current build.
 - Library compiler warnings are treated as errors.
 - The test suite now includes property-based managed-input tests and an 80% line-coverage gate with retained Cobertura
