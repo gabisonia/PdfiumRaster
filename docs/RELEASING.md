@@ -63,6 +63,27 @@ The workflow restores, tests, packs, smoke-tests the package in a fresh app, upl
 
 ## Local Release Checklist
 
+### Dependency Updates
+
+Dependabot checks monthly and groups version updates into one NuGet PR and one GitHub Actions PR,
+with at most one open version-update PR per ecosystem. These groups include major versions, which
+still need compatibility review. Security updates use separate groups and are not delayed by the
+monthly version-update schedule.
+
+After changing `Directory.Packages.props`, refresh lock files for the entire solution, including
+tests and benchmarks. Dependabot can leave transitive entries stale in projects that reference
+the library, causing locked restore to fail with NU1004.
+
+```bash
+dotnet restore PdfiumRaster.slnx --force-evaluate
+make restore
+make test
+make pack
+```
+
+Review and commit all changed `packages.lock.json` files with the dependency update. Keep locked
+restore enabled in CI so incomplete updates fail before building or publishing.
+
 ### 1. Update Version
 
 Update `VersionPrefix` in:
