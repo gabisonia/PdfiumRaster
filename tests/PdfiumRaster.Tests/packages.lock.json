@@ -124,28 +124,28 @@
           "SkiaSharp.NativeAssets.Linux.NoDependencies": "[4.151.2, )",
           "SkiaSharp.NativeAssets.Win32": "[4.151.2, )",
           "SkiaSharp.NativeAssets.macOS": "[4.151.2, )",
-          "bblanchon.PDFium.Linux": "[154.0.8035, )",
-          "bblanchon.PDFium.Win32": "[154.0.8035, )",
-          "bblanchon.PDFium.macOS": "[154.0.8035, )"
+          "bblanchon.PDFium.Linux": "[155.0.8044, )",
+          "bblanchon.PDFium.Win32": "[155.0.8044, )",
+          "bblanchon.PDFium.macOS": "[155.0.8044, )"
         }
       },
       "bblanchon.PDFium.Linux": {
         "type": "CentralTransitive",
-        "requested": "[154.0.8035, )",
-        "resolved": "154.0.8035",
-        "contentHash": "eWTK37C4KjzbcqUtfsLD4nIdUgoh4BFhrRdm4GTH0uuKa/klCZbqCBwq3Zk2uZhl06uk1r0N/e3sog0t94aPcQ=="
+        "requested": "[155.0.8044, )",
+        "resolved": "155.0.8044",
+        "contentHash": "RIVbKZkwbcSNgGZRODi9Z5HBp4z5+poAt9W779P2TslXCtzhrpzi+LEOtPJzPiA+Hh234DPPI7e15E4ZO/d+Tw=="
       },
       "bblanchon.PDFium.macOS": {
         "type": "CentralTransitive",
-        "requested": "[154.0.8035, )",
-        "resolved": "154.0.8035",
-        "contentHash": "hKhPX5Hfn9tQUCUEgYEmO+0sZxXud/zwhCU37zXWqOcwyhWhs9Zsv7EiUKSRdJrgYrruzuJzVuFvT4W4w3xA9A=="
+        "requested": "[155.0.8044, )",
+        "resolved": "155.0.8044",
+        "contentHash": "WDOy36XgQQCT3DY5QdPzSpo0kyhIMb2ArJdsAtU0El7IgJ3ACiZlO5o5s15kSHsEjUQxu0oSwBD/Vz51fKjpGQ=="
       },
       "bblanchon.PDFium.Win32": {
         "type": "CentralTransitive",
-        "requested": "[154.0.8035, )",
-        "resolved": "154.0.8035",
-        "contentHash": "eBidIMvH1+76ajznz5tdMx0A/odyPLKnQaggrL5tX1+al5/JEgwVtfHyzDGfIzuYXj5MLghyb+6KS3P/JATEPw=="
+        "requested": "[155.0.8044, )",
+        "resolved": "155.0.8044",
+        "contentHash": "TBqSYojufnh6IvzIZmsWrNwuHXMtk47AYxQPcUzVVSE971dz/dyQkdal6Z4CpFEstTE6n387NU98XYGVZCcKWA=="
       },
       "SkiaSharp": {
         "type": "CentralTransitive",
