@@ -4,7 +4,8 @@ updates:
   - package-ecosystem: nuget
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly
+      day: monday
       time: "06:00"
       timezone: Europe/Amsterdam
     open-pull-requests-limit: 1
@@ -24,7 +25,8 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly
+      day: monday
       time: "06:30"
       timezone: Europe/Amsterdam
     open-pull-requests-limit: 1
