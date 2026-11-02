@@ -57,7 +57,7 @@ dotnet add package PdfiumRaster
 
 No manual PDFium copy step is required for supported runtime identifiers.
 
-PdfiumRaster 2.0.6 updates the native PDFium runtimes to 156.0.8076 and SkiaSharp and its native assets to 4.153.1.
+PdfiumRaster 2.0.7 updates the native PDFium runtimes to 158.0.8125 and SkiaSharp and its native assets to 4.154.0.
 See the [changelog](https://github.com/gabisonia/PdfiumRaster/blob/master/CHANGELOG.md) for the release details.
 
 PdfiumRaster 2.0 and later require a runtime that implements .NET Standard 2.1. .NET Framework and other

@@ -2,6 +2,24 @@
 
 All notable changes to PdfiumRaster are documented in this file.
 
+## 2.0.7 - Unreleased
+
+### Changed
+
+- Updated native PDFium runtime packages for Linux, macOS, and Windows to 158.0.8125.
+- Updated SkiaSharp and its native runtime assets to 4.154.0.
+- Includes dependency and GitHub Actions updates merged since 2.0.6.
+- No public API changes.
+
+### Fixed
+
+- Synchronized transitive PDFium and SkiaSharp entries in the test and benchmark lock files so locked solution
+  restore succeeds after dependency updates.
+
+### Security
+
+- This release does not address a publicly known PdfiumRaster-specific vulnerability with a CVE or similar identifier.
+
 ## 2.0.6 - 2026-10-05
 
 ### Changed
