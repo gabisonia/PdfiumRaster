@@ -12,6 +12,8 @@ All notable changes to PdfiumRaster are documented in this file.
 
 ### Fixed
 
+- Fixed the package smoke test's local NuGet source path when running Make with Git Bash on Windows.
+
 - Synchronized transitive PDFium and SkiaSharp entries in the test and benchmark lock files so locked solution
   restore succeeds after dependency updates.
 

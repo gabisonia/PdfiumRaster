@@ -64,7 +64,7 @@ inspect-package: $(PACKAGE)
 
 smoke-package: $(PACKAGE)
 	set -euo pipefail; \
-	repo="$$(pwd)"; \
+	repo="$$(pwd -W 2>/dev/null || pwd)"; \
 	tmpdir="$$(mktemp -d)"; \
 	dotnet new console -n PdfiumRasterSmoke -o "$$tmpdir/PdfiumRasterSmoke" --framework net10.0 >/dev/null; \
 	cd "$$tmpdir/PdfiumRasterSmoke"; \
