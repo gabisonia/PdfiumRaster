@@ -188,6 +188,9 @@ that the package README examples match the packed version.
 
 ### 5. Smoke Test Local Package
 
+On Windows, run Make with Git Bash available. The smoke target writes a Windows-compatible absolute path into
+NuGet.config; on Linux and macOS it uses the normal POSIX path.
+
 ```bash
 make smoke-package
 ```
