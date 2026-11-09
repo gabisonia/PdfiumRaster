@@ -9,14 +9,14 @@
     <AssemblyName>PdfiumRaster</AssemblyName>
     <RootNamespace>PdfiumRaster</RootNamespace>
     <PackageId>PdfiumRaster</PackageId>
-    <VersionPrefix>2.0.7</VersionPrefix>
+    <VersionPrefix>2.0.8</VersionPrefix>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PathMap Condition="'$(CoverageBuild)' != 'true'">$(MSBuildProjectDirectory)=/_/src/PdfiumRaster</PathMap>
     <Authors>PdfiumRaster contributors</Authors>
     <Title>PdfiumRaster</Title>
     <Description>PDFium-backed .NET Standard 2.1 library for rendering PDF pages to images.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Updates native PDFium runtimes to 158.0.8125 and SkiaSharp and its native assets to 4.154.0. Includes dependency updates since 2.0.6 and synchronizes solution lock files. No public API changes.</PackageReleaseNotes>
+    <PackageReleaseNotes>Updates native PDFium runtimes to 159.0.8138 and SkiaSharp and its native assets to 4.155.0. Synchronizes solution lock files. No public API changes.</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageTags>pdf;pdfium;raster;image;converter</PackageTags>
