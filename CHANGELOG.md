@@ -2,6 +2,24 @@
 
 All notable changes to PdfiumRaster are documented in this file.
 
+## 2.0.9 - 2026-11-16
+
+### Changed
+
+- Updated native PDFium runtime packages for Linux, macOS, and Windows from 159.0.8138 to 159.0.8152.
+- Updated SkiaSharp and its native runtime assets from 4.155.0 to 4.156.1.
+- Updated System.Threading.Channels from 10.0.14 to 11.0.0.
+- Updated coverlet.collector from 10.1.0 to 10.1.1 and Microsoft.NET.Test.Sdk from 18.11.0 to 18.12.0.
+- No public API changes.
+
+### Fixed
+
+- Synchronized transitive dependencies in the test and benchmark lock files so locked solution restore succeeds.
+
+### Security
+
+- This release does not address a publicly known PdfiumRaster-specific vulnerability with a CVE or similar identifier.
+
 ## 2.0.8 - 2026-11-09
 
 ### Changed
