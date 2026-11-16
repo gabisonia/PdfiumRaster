@@ -2,7 +2,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <PdfiumNativeVersion>159.0.8138</PdfiumNativeVersion>
+    <PdfiumNativeVersion>159.0.8152</PdfiumNativeVersion>
     <PdfiumCoreVersion>157.0.8100</PdfiumCoreVersion>
   </PropertyGroup>
 
@@ -11,15 +11,15 @@
     <PackageVersion Include="bblanchon.PDFium.Linux" Version="$(PdfiumNativeVersion)" />
     <PackageVersion Include="bblanchon.PDFium.macOS" Version="$(PdfiumNativeVersion)" />
     <PackageVersion Include="bblanchon.PDFium.Win32" Version="$(PdfiumNativeVersion)" />
-    <PackageVersion Include="coverlet.collector" Version="10.1.0" />
+    <PackageVersion Include="coverlet.collector" Version="10.1.1" />
     <PackageVersion Include="FsCheck.Xunit" Version="3.6.0" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
     <PackageVersion Include="PDFiumCore" Version="$(PdfiumCoreVersion)" />
-    <PackageVersion Include="SkiaSharp" Version="4.155.0" />
-    <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.155.0" />
-    <PackageVersion Include="SkiaSharp.NativeAssets.macOS" Version="4.155.0" />
-    <PackageVersion Include="SkiaSharp.NativeAssets.Win32" Version="4.155.0" />
-    <PackageVersion Include="System.Threading.Channels" Version="10.0.14" />
+    <PackageVersion Include="SkiaSharp" Version="4.156.1" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.156.1" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.macOS" Version="4.156.1" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Win32" Version="4.156.1" />
+    <PackageVersion Include="System.Threading.Channels" Version="11.0.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
   </ItemGroup>
