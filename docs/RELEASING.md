@@ -233,3 +233,14 @@ git push origin <version>
 Create the tag from the exact commit that produced the published package, then attach or link the `.nupkg`, `.snupkg`,
 test result, and relevant benchmark summaries in the GitHub release. Summarize user-visible changes and any native
 dependency or platform-support changes.
+
+## Documentation site
+
+The GitHub Pages workflow builds and deploys the site from `master` when documentation changes. Pull requests run the same strict build. To check it locally:
+
+```bash
+python -m pip install -r scripts/pages/requirements.txt
+python -m mkdocs build --strict
+```
+
+The examples page is generated from `samples/README.md` during the build.

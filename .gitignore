@@ -14,3 +14,6 @@ tests/PdfiumRaster.Tests/TestAssets/Engineering Drawings.pdf
 .idea/
 .vs/
 .vscode/
+
+# MkDocs output
+site/
