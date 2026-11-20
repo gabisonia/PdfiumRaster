@@ -252,6 +252,8 @@ execution time. Public argument validation does not impose application-specific 
 
 ## Documentation
 
+Browse the [documentation site](https://gabisonia.dev/PdfiumRaster/) for getting started, API usage, architecture, performance, and examples.
+
 - [API guide](https://github.com/gabisonia/PdfiumRaster/blob/master/docs/API.md)
 - [Samples](https://github.com/gabisonia/PdfiumRaster/blob/master/samples/README.md)
 - [Architecture](https://github.com/gabisonia/PdfiumRaster/blob/master/docs/ARCHITECTURE.md)

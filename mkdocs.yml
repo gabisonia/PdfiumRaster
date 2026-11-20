@@ -1,0 +1,40 @@
+site_name: PdfiumRaster
+site_description: PDF-to-image rendering for .NET with PDFium and SkiaSharp.
+site_url: https://gabisonia.dev/PdfiumRaster/
+repo_url: https://github.com/gabisonia/PdfiumRaster
+repo_name: gabisonia/PdfiumRaster
+edit_uri: blob/master/docs/
+theme:
+  name: material
+  font: false
+  palette:
+    primary: blue grey
+    accent: teal
+  features:
+    - content.code.copy
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+plugins:
+  - search
+markdown_extensions:
+  - tables
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+hooks:
+  - scripts/pages/links.py
+validation:
+  links:
+    anchors: warn
+nav:
+  - Overview: index.md
+  - Getting started: getting-started.md
+  - API usage: API.md
+  - Architecture: ARCHITECTURE.md
+  - Performance: PERFORMANCE.md
+  - Examples: examples.md
+  - Further reading:
+    - PDFiumCore comparison: PDFIUMCORE-COMPARISON.md
+    - Release process: RELEASING.md
+    - OpenSSF evidence: OPENSSF-BEST-PRACTICES.md

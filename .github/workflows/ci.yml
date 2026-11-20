@@ -116,3 +116,6 @@ jobs:
           }
           CS
           dotnet run --configuration Release
+
+  documentation:
+    uses: ./.github/workflows/pages-build.yml
