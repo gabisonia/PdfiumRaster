@@ -4,50 +4,50 @@
     ".NETStandard,Version=v2.1": {
       "bblanchon.PDFium.Linux": {
         "type": "Direct",
-        "requested": "[159.0.8152, )",
-        "resolved": "159.0.8152",
-        "contentHash": "XLD3N+qURdAP2c6HDGCH8eW36FTm2YJZh5rL6c/Xoby5+98qDpH5QEpNMlATBfKzbpJ41rEWzDGVf4i8yz06dg=="
+        "requested": "[160.0.8165, )",
+        "resolved": "160.0.8165",
+        "contentHash": "EUvL2Xs6bqsx3v9ygHK4IwQZvKhFGW5gAYhawyinonvwssUQVW264zg5oAd081LkZmHt4q+/83eqPif0u019Cg=="
       },
       "bblanchon.PDFium.macOS": {
         "type": "Direct",
-        "requested": "[159.0.8152, )",
-        "resolved": "159.0.8152",
-        "contentHash": "nNlN8QNOkAAKz8abdhJXplHainQAxsmktFCYlQyUNugIScP07kBePWH8mXnQUxuBTPDW4VZ9GM+I4aSDWg/bGg=="
+        "requested": "[160.0.8165, )",
+        "resolved": "160.0.8165",
+        "contentHash": "wPOOddgr2pu1kqNGrH1E7DW1Fbhil1IrHWFMkVQK2x4/Ro58BjlAFG+yALCdwaLwQVUKawoKh7ohT9bn9GJVuw=="
       },
       "bblanchon.PDFium.Win32": {
         "type": "Direct",
-        "requested": "[159.0.8152, )",
-        "resolved": "159.0.8152",
-        "contentHash": "Dj8EHcctUC85vif7TwsHqYAN86z5JrbgGEAiWTT7VarOZVKZkCk3/3dNkCj13U9KhIo0OStmq/cPhmW+Q/oKcQ=="
+        "requested": "[160.0.8165, )",
+        "resolved": "160.0.8165",
+        "contentHash": "YQzaQpjbP7TEmmjxOd4W7Okub+8/Mj0trnGB4v9VJROXwynxwVBlNGEjMoFrpDGd1FMFeYzKG4oaeTx/UIc6Nw=="
       },
       "SkiaSharp": {
         "type": "Direct",
-        "requested": "[4.156.1, )",
-        "resolved": "4.156.1",
-        "contentHash": "DFlbYk/Rxnqm+UM/EaynxLlucc07+fuWzT84KsyT8aCDAT1PZOPlp5eATD7eYczTgV771bnxQKSrLbNmUCaSLQ==",
+        "requested": "[4.157.0, )",
+        "resolved": "4.157.0",
+        "contentHash": "C0PYSs8z0OGihExuIPaCEJnoEmDwiVRTFmDI2TZ44rWr2u7UiQX4rZyEwfVSHEiV5Zn/FYh1WbcO9uMPRxAsbw==",
         "dependencies": {
-          "SkiaSharp.NativeAssets.Win32": "4.156.1",
-          "SkiaSharp.NativeAssets.macOS": "4.156.1",
+          "SkiaSharp.NativeAssets.Win32": "4.157.0",
+          "SkiaSharp.NativeAssets.macOS": "4.157.0",
           "System.Runtime.CompilerServices.Unsafe": "6.1.2"
         }
       },
       "SkiaSharp.NativeAssets.Linux.NoDependencies": {
         "type": "Direct",
-        "requested": "[4.156.1, )",
-        "resolved": "4.156.1",
-        "contentHash": "p7LcHVbwsLOmvugPySgjA/ncq/BFap1MMbRs1u119PD8ZYFZYWaFS7MIT1e6ObwJGkJ9HVV9lEvugt30IjmFOA=="
+        "requested": "[4.157.0, )",
+        "resolved": "4.157.0",
+        "contentHash": "7skQaAxilNr4giLQPr1HMTFrwhUAJKI2Qlr7Djybi/e24Td/F4j7lIRf7DKJeHfH9mdxvD000o/NciDd8lSg5A=="
       },
       "SkiaSharp.NativeAssets.macOS": {
         "type": "Direct",
-        "requested": "[4.156.1, )",
-        "resolved": "4.156.1",
-        "contentHash": "c05wS/CpRum9JKzk77bXrUsBdxIhv4QBk+sbE3nlEfoEV53Uq9VY4yxuae20lO42kE8PoLShuh6dbbvRrE4/iw=="
+        "requested": "[4.157.0, )",
+        "resolved": "4.157.0",
+        "contentHash": "s44YB0BMAEudDf/AdcJLCcN6AXxhpKto0ZnJjats1TwNC+SD4mI2FhotDft58M593Ocea1ra6ad5slfJBhxfvg=="
       },
       "SkiaSharp.NativeAssets.Win32": {
         "type": "Direct",
-        "requested": "[4.156.1, )",
-        "resolved": "4.156.1",
-        "contentHash": "BFSUQxmxG9KI2UV7MW1Xb4XhCLSB7Rwsg9E94KelNi8L6ptGXnHIOm3yqU/y3djwg4ZNiBWhOB8XAGUVaF9LuA=="
+        "requested": "[4.157.0, )",
+        "resolved": "4.157.0",
+        "contentHash": "tP54cTnPqGrzf2pBcyupMZWdIUjV34ELdKuh3/c329kRQF4UCVLZvilQZrDMqPJ9P/+AUJC8kDRMBgT/jBvYug=="
       },
       "System.Threading.Channels": {
         "type": "Direct",
